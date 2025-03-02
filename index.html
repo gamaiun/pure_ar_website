@@ -10,17 +10,26 @@
     <script src="https://cdn.jsdelivr.net/gh/jeromeetienne/AR.js/1.7.2/aframe/build/aframe-ar.min.js"></script>
 
     <style>
-      /* Move AR.js UI buttons lower */
       .a-enter-vr,
       .a-enter-ar,
       .a-enter-vr-button,
       .a-enter-ar-button {
         position: fixed !important;
-        bottom: 20px !important;
+        bottom: 20px !important; /* Position near the bottom */
         left: 50% !important;
         transform: translateX(-50%) !important;
-        z-index: 9999 !important;
+        z-index: 9999 !important; /* Ensure they are always on top */
+        width: auto !important;
+        padding: 10px 15px !important; /* Add padding for better clickability */
       }
+
+      /* Add spacing between buttons */
+      .a-enter-vr {
+        bottom: 70px !important;
+      } /* Push the VR button up */
+      .a-enter-ar {
+        bottom: 20px !important;
+      } /* Keep AR button lower */
     </style>
   </head>
 
