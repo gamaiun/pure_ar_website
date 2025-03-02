@@ -163,13 +163,23 @@
 
     function ensureSingleScene() {
       const existingScene = document.querySelector("a-scene");
-      if (existingScene && existingScene.parentNode) {
-        logMessage("⚠️ Removing old A-Frame scene to prevent WebGL issues...");
-        existingScene.parentNode.removeChild(existingScene);
+
+      if (existingScene) {
+        if (existingScene.parentNode) {
+          logMessage(
+            "⚠️ Removing old A-Frame scene to prevent WebGL issues..."
+          );
+          existingScene.parentNode.removeChild(existingScene);
+        } else {
+          logMessage(
+            "⚠️ Scene exists but has no parent node, skipping removal."
+          );
+        }
       } else {
         logMessage("✅ No existing A-Frame scene found. Proceeding...");
       }
     }
+
     function initARScene() {
       ensureSingleScene(); // ✅ Prevent multiple WebGL contexts
       logMessage("🔹 Initializing AR Scene...");
