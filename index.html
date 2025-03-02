@@ -47,11 +47,11 @@
         model.addEventListener("model-loaded", () => {
           console.log("✅ Model Loaded!");
 
-          // 🔹 Force the object lower (1 meter down)
-          model.object3D.position.y = -1;
-
-          // 🔹 Move it 2 meters to the left
-          model.object3D.position.x = -2;
+          // 🔹 Delay positioning to ensure it's applied after the model is loaded
+          setTimeout(() => {
+            model.object3D.position.set(-2, -1, -3); // Move left, lower, and forward
+            console.log("✅ Model moved to X: -2, Y: -1, Z: -3");
+          }, 1000);
         });
       });
     </script>
