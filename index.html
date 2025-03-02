@@ -7,6 +7,20 @@
     />
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/jeromeetienne/AR.js/1.7.2/aframe/build/aframe-ar.min.js"></script>
+
+    <style>
+      /* Move AR.js UI buttons lower */
+      .a-enter-vr,
+      .a-enter-ar,
+      .a-enter-vr-button,
+      .a-enter-ar-button {
+        position: fixed !important;
+        bottom: 10px !important; /* Moves buttons further down */
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        z-index: 9999 !important; /* Ensure buttons are on top */
+      }
+    </style>
   </head>
 
   <body>
@@ -14,16 +28,11 @@
       <!-- Load .glb model from Firebase -->
       <a-entity
         gltf-model="https://firebasestorage.googleapis.com/v0/b/fireye-91940.firebasestorage.app/o/models%2FARObject1.glb?alt=media&token=a68ba586-0c9b-48c4-9bb1-9e25f430e1c8"
-        position="-2 0 -3"
-        <!--
-        Moves
-        2m
-        left,
-        1m
-        lower
-        --
+        position="-2 -1 -3"
+        scale="1 1 1"
+        rotation="0 180 0"
+        crossorigin="anonymous"
       >
-        scale="1 1 1" rotation="0 180 0" crossorigin="anonymous">
       </a-entity>
 
       <!-- AR.js camera -->
