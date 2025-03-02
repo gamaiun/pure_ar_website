@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html>
   <head>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
@@ -41,6 +41,103 @@
 
         scene.appendChild(model);
       });
+
+      window.onerror = function (message, source, lineno, colno, error) {
+        document.body.innerHTML = `
+      <h2 style="color:red">Error Detected:</h2>
+      <p>${message}</p>
+      <p>Source: ${source}</p>
+      <p>Line: ${lineno}, Column: ${colno}</p>
+    `;
+      };
+    </script>
+  </head>
+
+  <body>
+    <a-scene embedded arjs="sourceType: webcam;">
+      <a-camera gps-camera rotation-reader></a-camera>
+    </a-scene>
+  </body>
+</html> -->
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/jeromeetienne/ar.js/aframe/build/aframe-ar.min.js"></script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        document.body.innerHTML += `<h3 style="color:blue;">Loading AR Scene...</h3>`;
+
+        // Firebase Storage Public URL
+        const modelSrc =
+          "https://firebasestorage.googleapis.com/v0/b/fireye-91940.appspot.com/o/models%2FARObject1.glb?alt=media&token=a68ba586-0c9b-48c4-9bb1-9e25f430e1c8";
+
+        // Parse URL parameters dynamically
+        const urlParams = new URLSearchParams(window.location.search);
+
+        // Extract values with defaults
+        const gpsLat = parseFloat(urlParams.get("gpsLat")) || 33.20322;
+        const gpsLon = parseFloat(urlParams.get("gpsLon")) || 35.57516;
+        const posX = parseFloat(urlParams.get("x")) || 0.0;
+        const posY = parseFloat(urlParams.get("y")) || 0.0;
+        const posZ = parseFloat(urlParams.get("z")) || 0.0;
+        const scale = parseFloat(urlParams.get("scale")) || 1.0;
+
+        console.log("GPS Lat:", gpsLat, "GPS Lon:", gpsLon);
+        console.log("Position Offset:", posX, posY, posZ);
+        console.log("Scale:", scale);
+        console.log("Model URL:", modelSrc);
+
+        // Inject the 3D model dynamically
+        const scene = document.querySelector("a-scene");
+        const model = document.createElement("a-entity");
+
+        model.setAttribute(
+          "gps-entity-place",
+          `latitude: ${gpsLat}; longitude: ${gpsLon}`
+        );
+        model.setAttribute("gltf-model", modelSrc);
+        model.setAttribute("scale", `${scale} ${scale} ${scale}`);
+        model.setAttribute("position", `${posX} ${posY} ${posZ}`);
+        model.setAttribute("rotation", "0 180 0");
+
+        // Add event listener to check if the model loads properly
+        model.addEventListener("model-loaded", () => {
+          console.log("Model successfully loaded!");
+          document.body.innerHTML += `<h3 style="color:green;">Model Loaded Successfully!</h3>`;
+        });
+
+        model.addEventListener("error", (e) => {
+          console.error("Model loading error:", e);
+          document.body.innerHTML = `<h2 style="color:red;">Error: Model Failed to Load</h2>`;
+        });
+
+        scene.appendChild(model);
+      });
+
+      // Global error handler for JavaScript issues
+      window.onerror = function (message, source, lineno, colno, error) {
+        document.body.innerHTML = `
+          <h2 style="color:red">Error Detected:</h2>
+          <p>${message}</p>
+          <p>Source: ${source}</p>
+          <p>Line: ${lineno}, Column: ${colno}</p>
+        `;
+        console.error(
+          "Error:",
+          message,
+          "at",
+          source,
+          "Line:",
+          lineno,
+          "Col:",
+          colno,
+          "Details:",
+          error
+        );
+      };
     </script>
   </head>
 
