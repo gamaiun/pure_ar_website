@@ -33,7 +33,7 @@
     </style>
   </head>
 
-  <script>
+  <!-- <script>
     function logMessage(message) {
       document.body.innerHTML += `<p style="color:blue;">${message}</p>`;
       console.log(message);
@@ -96,7 +96,8 @@
           );
           model.setAttribute("gltf-model", modelSrc);
           model.setAttribute("scale", `${scale} ${scale} ${scale}`);
-          model.setAttribute("position", `${posX} ${posY} ${posZ}`);
+          //   model.setAttribute("position", `${posX} ${posY} ${posZ}`);
+          model.setAttribute("position", "0 1 -3");
           model.setAttribute("rotation", "0 180 0");
           model.setAttribute("crossorigin", "anonymous");
 
@@ -113,6 +114,130 @@
             scene.appendChild(model);
             logMessage("✅ Model added to scene!");
           }, 1000);
+        });
+      }
+
+      waitForScene();
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      await requestPermissions();
+      initARScene();
+    });
+
+    window.onerror = function (message, source, lineno, colno, error) {
+      document.body.innerHTML += `
+          <h2 style="color:red">❌ Error Detected:</h2>
+          <p>${message}</p>
+          <p>Source: ${source}</p>
+          <p>Line: ${lineno}, Column: ${colno}</p>
+        `;
+      console.error(
+        "Error:",
+        message,
+        "at",
+        source,
+        "Line:",
+        lineno,
+        "Col:",
+        colno,
+        "Details:",
+        error
+      );
+    };
+  </script> -->
+  <script>
+    function logMessage(message) {
+      document.body.innerHTML += `<p style="color:blue;">${message}</p>`;
+      console.log(message);
+    }
+
+    async function requestPermissions() {
+      try {
+        await navigator.mediaDevices.getUserMedia({ video: true });
+        logMessage("✅ Camera permission granted!");
+      } catch (err) {
+        logMessage("❌ Camera permission denied: " + err);
+      }
+    }
+
+    function ensureSingleScene() {
+      const existingScene = document.querySelector("a-scene");
+      if (existingScene) {
+        logMessage("⚠️ Removing old A-Frame scene to prevent WebGL issues...");
+        existingScene.parentNode.removeChild(existingScene);
+      }
+    }
+
+    function initARScene() {
+      ensureSingleScene(); // ✅ Prevent multiple WebGL contexts
+      logMessage("🔹 Initializing AR Scene...");
+
+      const modelSrc =
+        "https://firebasestorage.googleapis.com/v0/b/fireye-91940.firebasestorage.app/o/models%2FARObject1.glb?alt=media&token=a68ba586-0c9b-48c4-9bb1-9e25f430e1c8";
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const gpsLat = parseFloat(urlParams.get("gpsLat")) || 33.20322;
+      const gpsLon = parseFloat(urlParams.get("gpsLon")) || 35.57516;
+      const posX = parseFloat(urlParams.get("x")) || 0.0;
+      const posY = parseFloat(urlParams.get("y")) || 0.0;
+      const posZ = parseFloat(urlParams.get("z")) || 0.0;
+      const scale = parseFloat(urlParams.get("scale")) || 1.0;
+
+      logMessage(`📍 GPS: ${gpsLat}, ${gpsLon}`);
+      logMessage(`📏 Position Offset: x=${posX}, y=${posY}, z=${posZ}`);
+      logMessage(`📌 Scale: ${scale}`);
+      logMessage(
+        `🖼️ Model URL: <a href="${modelSrc}" target="_blank">${modelSrc}</a>`
+      );
+
+      fetch(modelSrc)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          logMessage("✅ Model is accessible from Firebase!");
+        })
+        .catch((error) => logMessage(`❌ Model access error: ${error}`));
+
+      function waitForScene() {
+        const scene = document.querySelector("a-scene");
+        if (!scene) {
+          logMessage("⏳ Waiting for A-Frame scene to load...");
+          setTimeout(waitForScene, 500);
+          return;
+        }
+
+        scene.addEventListener("loaded", function () {
+          logMessage("✅ A-Frame Scene Loaded!");
+
+          // ✅ Remove old model if it exists
+          const existingModel = document.querySelector("[gltf-model]");
+          if (existingModel) {
+            logMessage("⚠️ Removing old model...");
+            existingModel.parentNode.removeChild(existingModel);
+          }
+
+          const model = document.createElement("a-entity");
+          model.setAttribute(
+            "gps-entity-place",
+            `latitude: ${gpsLat}; longitude: ${gpsLon}`
+          );
+          model.setAttribute("gltf-model", modelSrc);
+          model.setAttribute("scale", `${scale} ${scale} ${scale}`);
+          model.setAttribute("position", "0 1 -3"); // ✅ Visible in front
+          model.setAttribute("rotation", "0 180 0");
+          model.setAttribute("crossorigin", "anonymous");
+
+          model.addEventListener("model-loaded", () => {
+            logMessage("✅ Model successfully loaded and displayed!");
+          });
+
+          model.addEventListener("error", (e) => {
+            logMessage(`❌ Model load error: ${e}`);
+          });
+
+          scene.appendChild(model);
         });
       }
 
