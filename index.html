@@ -28,15 +28,19 @@
         console.log("Scale:", scale);
         console.log("Model URL:", modelSrc);
 
-        // Wait for A-Frame scene to be ready
-        document
-          .querySelector("a-scene")
-          .addEventListener("loaded", function () {
+        // 🔹 Wait for A-Frame to be fully ready before modifying the scene
+        function waitForScene() {
+          const scene = document.querySelector("a-scene");
+          if (!scene) {
+            console.warn("A-Frame scene not found yet, retrying...");
+            setTimeout(waitForScene, 500); // Retry after 500ms
+            return;
+          }
+
+          scene.addEventListener("loaded", function () {
             console.log("A-Frame Scene Loaded!");
 
-            const scene = document.querySelector("a-scene");
             const model = document.createElement("a-entity");
-
             model.setAttribute(
               "gps-entity-place",
               `latitude: ${gpsLat}; longitude: ${gpsLon}`
@@ -58,6 +62,9 @@
 
             scene.appendChild(model);
           });
+        }
+
+        waitForScene();
       }
 
       // Ensure script runs only when the DOM is fully loaded
