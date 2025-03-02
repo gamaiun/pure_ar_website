@@ -22,11 +22,9 @@
       function initARScene() {
         logMessage("🔹 Initializing AR Scene...");
 
-        // Firebase Storage Public URL for the 3D model
         const modelSrc =
           "https://firebasestorage.googleapis.com/v0/b/fireye-91940.firebasestorage.app/o/models%2FARObject1.glb?alt=media&token=a68ba586-0c9b-48c4-9bb1-9e25f430e1c8";
 
-        // Parse URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         const gpsLat = parseFloat(urlParams.get("gpsLat")) || 33.20322;
         const gpsLon = parseFloat(urlParams.get("gpsLon")) || 35.57516;
@@ -42,7 +40,6 @@
           `🖼️ Model URL: <a href="${modelSrc}" target="_blank">${modelSrc}</a>`
         );
 
-        // Verify if the Firebase model is accessible
         fetch(modelSrc)
           .then((response) => {
             if (!response.ok) {
@@ -52,7 +49,6 @@
           })
           .catch((error) => logMessage(`❌ Model access error: ${error}`));
 
-        // Wait for A-Frame to load before modifying the scene
         function waitForScene() {
           const scene = document.querySelector("a-scene");
           if (!scene) {
@@ -73,13 +69,15 @@
             model.setAttribute("scale", `${scale} ${scale} ${scale}`);
             model.setAttribute("position", `${posX} ${posY} ${posZ}`);
             model.setAttribute("rotation", "0 180 0");
+            model.setAttribute("crossorigin", "anonymous");
 
-            model.addEventListener("model-loaded", () =>
-              logMessage("✅ Model successfully loaded and displayed!")
-            );
-            model.addEventListener("error", (e) =>
-              logMessage(`❌ Model load error: ${e}`)
-            );
+            model.addEventListener("model-loaded", () => {
+              logMessage("✅ Model successfully loaded and displayed!");
+            });
+
+            model.addEventListener("error", (e) => {
+              logMessage(`❌ Model load error: ${e}`);
+            });
 
             scene.appendChild(model);
           });
@@ -89,7 +87,7 @@
       }
 
       document.addEventListener("DOMContentLoaded", async () => {
-        await requestPermissions(); // Request camera access
+        await requestPermissions();
         initARScene();
       });
 
