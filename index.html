@@ -44,9 +44,21 @@
         logMessage(`📍 GPS: ${gpsLat}, ${gpsLon}`);
         logMessage(`📏 Position Offset: x=${posX}, y=${posY}, z=${posZ}`);
         logMessage(`📌 Scale: ${scale}`);
-        logMessage(`🖼️ Model URL: ${modelSrc}`);
+        logMessage(
+          `🖼️ Model URL: <a href="${modelSrc}" target="_blank">${modelSrc}</a>`
+        );
 
-        // 🔹 Wait for A-Frame to load before modifying the scene
+        // Verify if the Firebase model is accessible
+        fetch(modelSrc)
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            logMessage("✅ Model is accessible from Firebase!");
+          })
+          .catch((error) => logMessage(`❌ Model access error: ${error}`));
+
+        // Wait for A-Frame to load before modifying the scene
         function waitForScene() {
           const scene = document.querySelector("a-scene");
           if (!scene) {
@@ -69,7 +81,7 @@
             model.setAttribute("rotation", "0 180 0");
 
             model.addEventListener("model-loaded", () =>
-              logMessage("✅ Model successfully loaded!")
+              logMessage("✅ Model successfully loaded and displayed!")
             );
             model.addEventListener("error", (e) =>
               logMessage(`❌ Model load error: ${e}`)
@@ -88,7 +100,7 @@
       });
 
       window.onerror = function (message, source, lineno, colno, error) {
-        document.body.innerHTML = `
+        document.body.innerHTML += `
           <h2 style="color:red">❌ Error Detected:</h2>
           <p>${message}</p>
           <p>Source: ${source}</p>
