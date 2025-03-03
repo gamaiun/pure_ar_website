@@ -52,6 +52,7 @@
         return {
           gpsLat: parseFloat(params.get("gpsLat")),
           gpsLon: parseFloat(params.get("gpsLon")),
+          scale: parseFloat(params.get("scale")) || 0.5,
         };
       }
 
@@ -60,14 +61,13 @@
       }
 
       function calculateOffset(userLat, userLon, targetLat, targetLon) {
-        const R = 6371000;
+        const R = 6371000; // Earth radius in meters
         const dLat = toRadians(targetLat - userLat);
         const dLon = toRadians(targetLon - userLon);
         const latAvg = toRadians((userLat + targetLat) / 2);
-        return {
-          x: R * dLon * Math.cos(latAvg),
-          z: -R * dLat,
-        };
+        const x = R * dLon * Math.cos(latAvg);
+        const z = -R * dLat;
+        return { x, z };
       }
 
       window.onload = () => {
@@ -76,14 +76,15 @@
         const camera = document.querySelector("a-camera");
         const loadingDiv = document.querySelector("#loading");
 
-        const { gpsLat, gpsLon } = getQueryParams();
+        const { gpsLat, gpsLon, scale } = getQueryParams();
         if (!gpsLat || !gpsLon) {
           console.error("Missing gpsLat or gpsLon.");
           loadingDiv.textContent = "Error: Missing GPS.";
           return;
         }
 
-        console.log(`Target: Lat ${gpsLat}, Lon ${gpsLon}`);
+        console.log(`Target: Lat ${gpsLat}, Lon ${gpsLon}, Scale ${scale}`);
+        modelEntity.setAttribute("scale", `${scale} ${scale} ${scale}`);
 
         scene.addEventListener("loaded", () => {
           console.log("Scene loaded");
@@ -94,8 +95,12 @@
 
             navigator.geolocation.watchPosition(
               (position) => {
-                const userLat = position.coords.latitude.toFixed(14); // Match URL precision
-                const userLon = position.coords.longitude.toFixed(14);
+                const userLat = parseFloat(
+                  position.coords.latitude.toFixed(14)
+                );
+                const userLon = parseFloat(
+                  position.coords.longitude.toFixed(14)
+                );
                 console.log(`User: Lat ${userLat}, Lon ${userLon}`);
 
                 const offset = calculateOffset(
@@ -111,7 +116,7 @@
                 if (!anchored) {
                   const worldPos = new THREE.Vector3(offset.x, 0.5, offset.z);
                   modelEntity.object3D.position.copy(worldPos);
-                  scene.object3D.add(modelEntity.object3D); // World space
+                  scene.object3D.add(modelEntity.object3D);
                   modelEntity.object3D.updateMatrixWorld(true);
                   anchored = true;
                   console.log(
@@ -121,8 +126,7 @@
                   );
                 }
 
-                camera.object3D.position.set(0, 1.6, 0); // Camera stays at origin
-
+                camera.object3D.position.set(0, 1.6, 0);
                 scene.classList.add("ready");
                 loadingDiv.style.display = "none";
               },
