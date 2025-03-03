@@ -30,16 +30,17 @@
   <body>
     <div id="loading">Loading...</div>
     <a-scene
-      arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+      arjs="sourceType: webcam; debugUIEnabled: false;"
       renderer="logarithmicDepthBuffer: true;"
     >
       <!-- Camera with GPS tracking -->
       <a-camera gps-camera rotation-reader position="0 1.6 0"></a-camera>
 
-      <!-- 3D Model - Anchored to URL GPS -->
+      <!-- 3D Model with initial GPS placeholder -->
       <a-entity
         id="object"
-        gps-entity-place=""
+        gps-entity-place="latitude: 0; longitude: 0"
+        position="0 0.5 0"
         scale="0.5 0.5 0.5"
         gltf-model="url(https://firebasestorage.googleapis.com/v0/b/fireye-91940.firebasestorage.app/o/models%2FARObject1.glb?alt=media&token=a68ba586-0c9b-48c4-9bb1-9e25f430e1c8)"
       ></a-entity>
@@ -60,38 +61,53 @@
         const modelEntity = document.querySelector("#object");
         const loadingDiv = document.querySelector("#loading");
 
-        // Get URL coordinates immediately
+        // Get URL coordinates
         const { gpsLat, gpsLon } = getQueryParams();
 
-        if (gpsLat && gpsLon) {
-          console.log(`URL Coordinates: Lat ${gpsLat}, Lon ${gpsLon}`);
-          // Set GPS position before scene loads
-          modelEntity.setAttribute("gps-entity-place", {
-            latitude: gpsLat,
-            longitude: gpsLon,
-          });
-          // Set height (optional)
-          modelEntity.setAttribute("position", "0 0.5 0");
-        } else {
+        if (!gpsLat || !gpsLon) {
           console.error("Missing gpsLat or gpsLon in URL.");
           loadingDiv.textContent = "Error: Missing GPS coordinates in URL.";
           return;
         }
 
+        console.log(`URL Coordinates: Lat ${gpsLat}, Lon ${gpsLon}`);
+
+        // Set GPS position immediately
+        modelEntity.setAttribute("gps-entity-place", {
+          latitude: gpsLat,
+          longitude: gpsLon,
+        });
+
         // Wait for scene to load
         scene.addEventListener("loaded", () => {
           console.log("Scene core loaded");
+
+          // Reapply GPS to ensure it sticks
+          modelEntity.setAttribute("gps-entity-place", {
+            latitude: gpsLat,
+            longitude: gpsLon,
+          });
 
           // Wait for model to load
           modelEntity.addEventListener("model-loaded", () => {
             console.log("3D model loaded");
 
-            // Verify GPS position
+            // Check GPS component
             const gpsComponent = modelEntity.components["gps-entity-place"];
             if (gpsComponent) {
               console.log(
                 `Object GPS Position: Lat ${gpsComponent.latitude}, Lon ${gpsComponent.longitude}`
               );
+              if (
+                gpsComponent.latitude !== gpsLat ||
+                gpsComponent.longitude !== gpsLon
+              ) {
+                console.warn("GPS values mismatch! Reapplying...");
+                modelEntity.setAttribute("gps-entity-place", {
+                  latitude: gpsLat,
+                  longitude: gpsLon,
+                });
+              }
             } else {
               console.error("gps-entity-place component not initialized.");
             }
@@ -101,14 +117,14 @@
             loadingDiv.style.display = "none";
           });
 
-          // Handle model loading errors
+          // Handle model errors
           modelEntity.addEventListener("model-error", (event) => {
             console.error("Model failed to load:", event.detail);
-            loadingDiv.textContent = "Error loading model. Check console.";
+            loadingDiv.textContent = "Error loading model.";
           });
         });
 
-        // Debug GPS camera updates
+        // Debug GPS camera
         const camera = document.querySelector("a-camera");
         camera.addEventListener("gps-camera-update-position", (event) => {
           console.log(
