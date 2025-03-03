@@ -36,6 +36,16 @@
       <!-- Camera with GPS tracking -->
       <a-camera gps-camera rotation-reader position="0 1.6 0"></a-camera>
 
+      <!-- Fallback box if model fails -->
+      <a-box
+        id="fallback"
+        gps-entity-place=""
+        position="0 0.5 0"
+        scale="0.5 0.5 0.5"
+        color="red"
+        visible="false"
+      ></a-box>
+
       <!-- 3D Model at URL GPS coordinates -->
       <a-entity
         id="object"
@@ -59,6 +69,7 @@
       window.onload = () => {
         const scene = document.querySelector("a-scene");
         const modelEntity = document.querySelector("#object");
+        const fallbackEntity = document.querySelector("#fallback");
         const loadingDiv = document.querySelector("#loading");
 
         // Get URL coordinates
@@ -72,38 +83,39 @@
 
         console.log(`Target Coordinates: Lat ${gpsLat}, Lon ${gpsLon}`);
 
-        // Set GPS position immediately
-        modelEntity.setAttribute(
-          "gps-entity-place",
-          `latitude: ${gpsLat}; longitude: ${gpsLon}`
-        );
+        // Set GPS position in HTML
+        const gpsString = `latitude: ${gpsLat}; longitude: ${gpsLon}`;
+        modelEntity.setAttribute("gps-entity-place", gpsString);
+        fallbackEntity.setAttribute("gps-entity-place", gpsString);
 
         // Wait for scene to load
         scene.addEventListener("loaded", () => {
           console.log("Scene core loaded");
 
+          // Check GPS component early
+          const gpsComponent = modelEntity.components["gps-entity-place"];
+          if (gpsComponent) {
+            console.log(
+              `Initial Object GPS: Lat ${gpsComponent.latitude}, Lon ${gpsComponent.longitude}`
+            );
+          } else {
+            console.error("gps-entity-place not initialized yet.");
+          }
+
           // Wait for model to load
           modelEntity.addEventListener("model-loaded", () => {
             console.log("3D model loaded");
 
-            // Verify and reapply GPS
-            const gpsComponent = modelEntity.components["gps-entity-place"];
-            if (gpsComponent) {
+            // Verify GPS
+            const gpsComponentFinal =
+              modelEntity.components["gps-entity-place"];
+            if (gpsComponentFinal) {
               console.log(
-                `Object GPS: Lat ${gpsComponent.latitude}, Lon ${gpsComponent.longitude}`
+                `Final Object GPS: Lat ${gpsComponentFinal.latitude}, Lon ${gpsComponentFinal.longitude}`
               );
-              if (
-                gpsComponent.latitude !== gpsLat ||
-                gpsComponent.longitude !== gpsLon
-              ) {
-                console.warn("GPS mismatch! Reapplying...");
-                modelEntity.setAttribute("gps-entity-place", {
-                  latitude: gpsLat,
-                  longitude: gpsLon,
-                });
-              }
             } else {
-              console.error("gps-entity-place not initialized.");
+              console.error("gps-entity-place still not initialized.");
+              fallbackEntity.setAttribute("visible", "true"); // Show fallback
             }
 
             // Show scene
@@ -115,6 +127,7 @@
           modelEntity.addEventListener("model-error", (event) => {
             console.error("Model failed to load:", event.detail);
             loadingDiv.textContent = "Error loading model.";
+            fallbackEntity.setAttribute("visible", "true");
           });
         });
 
