@@ -42,8 +42,14 @@
         id="object"
         position="0 0.5 0"
         scale="0.5 0.5 0.5"
+        <!--
+        Default
+        scale
+        --
+      >
         gltf-model="url(https://firebasestorage.googleapis.com/v0/b/fireye-91940.firebasestorage.app/o/models%2FARObject1.glb?alt=media&token=a68ba586-0c9b-48c4-9bb1-9e25f430e1c8)"
-      ></a-entity>
+        ></a-entity
+      >
     </a-scene>
 
     <script>
@@ -52,6 +58,7 @@
         return {
           gpsLat: parseFloat(params.get("gpsLat")),
           gpsLon: parseFloat(params.get("gpsLon")),
+          scale: parseFloat(params.get("scale")) || 0.5, // Default to 0.5 if not provided
         };
       }
 
@@ -76,25 +83,27 @@
         const camera = document.querySelector("a-camera");
         const loadingDiv = document.querySelector("#loading");
 
-        const { gpsLat, gpsLon } = getQueryParams();
+        const { gpsLat, gpsLon, scale } = getQueryParams();
         if (!gpsLat || !gpsLon) {
           console.error("Missing gpsLat or gpsLon.");
           loadingDiv.textContent = "Error: Missing GPS.";
           return;
         }
 
-        console.log(`Target: Lat ${gpsLat}, Lon ${gpsLon}`);
+        console.log(`Target: Lat ${gpsLat}, Lon ${gpsLon}, Scale ${scale}`);
+
+        // Set scale from URL
+        modelEntity.setAttribute("scale", `${scale} ${scale} ${scale}`);
 
         scene.addEventListener("loaded", () => {
           console.log("Scene loaded");
 
           modelEntity.addEventListener("model-loaded", () => {
             console.log("Model loaded");
-            let anchored = false;
 
             navigator.geolocation.watchPosition(
               (position) => {
-                const userLat = position.coords.latitude.toFixed(14); // Match URL precision
+                const userLat = position.coords.latitude.toFixed(14);
                 const userLon = position.coords.longitude.toFixed(14);
                 console.log(`User: Lat ${userLat}, Lon ${userLon}`);
 
@@ -108,12 +117,12 @@
                   `Offset: x=${offset.x.toFixed(2)}, z=${offset.z.toFixed(2)}`
                 );
 
-                if (!anchored) {
+                if (!modelEntity.getAttribute("data-anchored")) {
                   const worldPos = new THREE.Vector3(offset.x, 0.5, offset.z);
                   modelEntity.object3D.position.copy(worldPos);
-                  scene.object3D.add(modelEntity.object3D); // World space
+                  scene.object3D.add(modelEntity.object3D);
                   modelEntity.object3D.updateMatrixWorld(true);
-                  anchored = true;
+                  modelEntity.setAttribute("data-anchored", true);
                   console.log(
                     `Anchored at: x=${worldPos.x.toFixed(
                       2
@@ -121,7 +130,7 @@
                   );
                 }
 
-                camera.object3D.position.set(0, 1.6, 0); // Camera stays at origin
+                camera.object3D.position.set(0, 1.6, 0);
 
                 scene.classList.add("ready");
                 loadingDiv.style.display = "none";
