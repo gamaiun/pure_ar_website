@@ -99,7 +99,6 @@
         scene.addEventListener("loaded", () => {
           console.log("Scene loaded");
 
-          // Start GPS immediately
           console.log("Starting geolocation");
           navigator.geolocation.watchPosition(
             (position) => {
@@ -113,9 +112,13 @@
               );
 
               if (!modelEntity.getAttribute("data-anchored")) {
+                // Remove from camera if parented there
+                if (modelEntity.object3D.parent !== scene.object3D) {
+                  camera.object3D.remove(modelEntity.object3D);
+                  scene.object3D.add(modelEntity.object3D);
+                }
                 const worldPos = new THREE.Vector3(offset.x, 0.5, offset.z);
                 modelEntity.object3D.position.copy(worldPos);
-                scene.object3D.add(modelEntity.object3D);
                 modelEntity.object3D.updateMatrixWorld(true);
                 modelEntity.setAttribute("data-anchored", "true");
                 console.log(
@@ -125,7 +128,7 @@
                 );
               }
 
-              camera.object3D.position.set(0, 1.6, 0);
+              // Don’t reset camera position—let offset define placement
               scene.classList.add("ready");
               loadingDiv.style.display = "none";
             },
