@@ -33,14 +33,11 @@
       arjs="sourceType: webcam; debugUIEnabled: false;"
       renderer="logarithmicDepthBuffer: true;"
     >
-      <!-- Camera -->
       <a-camera
         rotation-reader
         position="0 1.6 0"
         camera="far: 1000;"
       ></a-camera>
-
-      <!-- 3D Model -->
       <a-entity
         id="object"
         position="0 0.5 0"
@@ -93,7 +90,6 @@
 
           modelEntity.addEventListener("model-loaded", () => {
             console.log("Model loaded");
-            let initialSet = false;
             let anchorPos = null;
 
             navigator.geolocation.watchPosition(
@@ -112,11 +108,10 @@
                   `Offset: x=${offset.x.toFixed(2)}, z=${offset.z.toFixed(2)}`
                 );
 
-                if (!initialSet) {
+                if (!anchorPos) {
                   anchorPos = new THREE.Vector3(offset.x, 0.5, offset.z);
                   modelEntity.object3D.position.copy(anchorPos);
-                  scene.object3D.add(modelEntity.object3D); // Ensure world space
-                  initialSet = true;
+                  scene.object3D.add(modelEntity.object3D); // World space
                   console.log(
                     `Anchored at: x=${anchorPos.x.toFixed(
                       2
@@ -124,15 +119,17 @@
                   );
                 }
 
-                camera.object3D.position.set(
-                  offset.x - anchorPos.x,
-                  1.6,
-                  offset.z - anchorPos.z
+                // Move camera, not object
+                const camOffset = calculateOffset(
+                  userLat,
+                  userLon,
+                  gpsLat,
+                  gpsLon
                 );
-                console.log(
-                  `Camera: x=${camera.object3D.position.x.toFixed(
-                    2
-                  )}, z=${camera.object3D.position.z.toFixed(2)}`
+                camera.object3D.position.set(
+                  camOffset.x - anchorPos.x,
+                  1.6,
+                  camOffset.z - anchorPos.z
                 );
 
                 scene.classList.add("ready");
