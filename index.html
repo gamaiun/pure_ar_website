@@ -9,18 +9,22 @@
   </head>
   <body>
     <a-scene
-      vr-mode-ui="enabled: false"
       arjs="sourceType: webcam; debugUIEnabled: false;"
       renderer="logarithmicDepthBuffer: true;"
     >
       <!-- Camera with GPS tracking -->
       <a-camera gps-camera rotation-reader position="0 1.6 0"> </a-camera>
 
-      <!-- Green Cube - 1 meter in front of camera -->
-      <a-box id="cube" position="0 0.5 -1" scale="0.5 0.5 0.5" color="green">
+      <!-- Green Cube - 2 meters northwest (x=-2, z=-2), scaled down -->
+      <a-box
+        id="cube"
+        position="-2 0.5 -2"
+        scale="0.25 0.25 0.25"
+        color="green"
+      >
       </a-box>
 
-      <!-- Blue Sphere - 1 meter in front, slightly to the right -->
+      <!-- Blue Sphere - unchanged, 1 meter in front, slightly right -->
       <a-sphere id="sphere" position="1 0.5 -1" radius="0.3" color="blue">
       </a-sphere>
 
@@ -42,11 +46,9 @@
         const cube = document.querySelector("#cube");
         const sphere = document.querySelector("#sphere");
 
-        // Wait for scene to load
         scene.addEventListener("loaded", () => {
           console.log("Scene loaded");
 
-          // Get current GPS position
           if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
               (position) => {
@@ -54,7 +56,6 @@
                 const longitude = position.coords.longitude;
                 console.log(`Your location: Lat ${latitude}, Lon ${longitude}`);
 
-                // Update entities with current GPS (optional for GPS anchoring)
                 cube.setAttribute("gps-entity-place", {
                   latitude: latitude,
                   longitude: longitude,
@@ -70,7 +71,7 @@
               { enableHighAccuracy: true }
             );
           } else {
-            console.error("Geolocation not supported by this browser.");
+            console.error("Geolocation not supported.");
           }
         });
       };
