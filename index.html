@@ -26,10 +26,10 @@
   </head>
 
   <body>
-    <a-scene>
+    <a-scene embedded arjs="sourceType: webcam;">
       <a-box position="0 1 -3" color="blue"></a-box>
       <a-sphere position="1 1 -5" radius="0.5" color="red"></a-sphere>
-      <a-camera gps-camera="gpsMinDistance: 1;" rotation-reader></a-camera>
+      <a-camera gps-camera rotation-reader></a-camera>
     </a-scene>
 
     <script>
@@ -76,7 +76,7 @@
         logMessage("🔄 Forcing AR.js GPS update...");
         const gpsCamera = document.querySelector("[gps-camera]");
         if (gpsCamera) {
-          gpsCamera.setAttribute("gpsMinDistance", "0.5");
+          gpsCamera.setAttribute("gpsMinDistance", "1");
         } else {
           logMessage("❌ gps-camera not found!");
         }
