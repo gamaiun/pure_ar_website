@@ -74,39 +74,48 @@
     function addModelToScene(gpsLat, gpsLon, posX, posY, posZ) {
       const scene = document.querySelector("a-scene");
 
-      const model = document.createElement("a-entity");
-      model.setAttribute(
-        "gps-entity-place",
-        `latitude: ${gpsLat}; longitude: ${gpsLon}`
-      );
-      model.setAttribute(
-        "gltf-model",
-        "https://firebasestorage.googleapis.com/v0/b/fireye-91940.firebasestorage.app/o/models%2FARObject1.glb?alt=media&token=a68ba586-0c9b-48c4-9bb1-9e25f430e1c8"
-      );
-      model.setAttribute("position", `${posX} ${posY} ${posZ}`);
-      model.setAttribute("rotation", "0 180 0");
-      model.setAttribute("crossorigin", "anonymous");
+      if (!scene) {
+        logMessage("❌ Scene not found!");
+        return;
+      }
 
-      model.addEventListener("model-loaded", () =>
-        logMessage("✅ Model loaded!")
-      );
-      model.addEventListener("error", (e) =>
-        logMessage(`❌ Model load error: ${e}`)
-      );
+      logMessage("✅ Adding model at GPS location...");
 
-      scene.appendChild(model);
-      logMessage("✅ Model added to scene!");
-
-      // 🔹 Debug Marker: Adds a small red sphere at the model’s GPS location
+      // Create Debug Marker (Red Sphere)
       const debugMarker = document.createElement("a-sphere");
+      debugMarker.setAttribute("radius", "0.5");
+      debugMarker.setAttribute("color", "red");
       debugMarker.setAttribute(
         "gps-entity-place",
         `latitude: ${gpsLat}; longitude: ${gpsLon}`
       );
-      debugMarker.setAttribute("radius", "0.5");
-      debugMarker.setAttribute("color", "red");
       scene.appendChild(debugMarker);
-      logMessage("✅ Debug marker added!");
+      logMessage("✅ Debug marker added to scene!");
+
+      // Create 3D Model
+      const model = document.createElement("a-entity");
+      model.setAttribute(
+        "gltf-model",
+        "https://firebasestorage.googleapis.com/v0/b/fireye-91940.firebasestorage.app/o/models%2FARObject1.glb?alt=media&token=a68ba586-0c9b-48c4-9bb1-9e25f430e1c8"
+      );
+      model.setAttribute(
+        "gps-entity-place",
+        `latitude: ${gpsLat}; longitude: ${gpsLon}`
+      );
+      model.setAttribute("scale", "1 1 1");
+      model.setAttribute("rotation", "0 180 0");
+      model.setAttribute("crossorigin", "anonymous");
+
+      model.addEventListener("model-loaded", () => {
+        logMessage("✅ Model loaded successfully!");
+      });
+
+      model.addEventListener("error", (e) => {
+        logMessage(`❌ Model load error: ${e}`);
+      });
+
+      scene.appendChild(model);
+      logMessage("✅ Model added to scene!");
     }
 
     document.addEventListener("DOMContentLoaded", async () => {
@@ -139,6 +148,16 @@
   <body>
     <a-scene embedded arjs="sourceType: webcam; trackingMethod: best;">
       <a-camera gps-camera rotation-reader gpsMinDistance="2"></a-camera>
+
+      <script>
+        document
+          .querySelector("[gps-camera]")
+          .addEventListener("gps-camera-update", (event) => {
+            logMessage(
+              `📍 GPS Updated: ${event.detail.position.latitude}, ${event.detail.position.longitude}`
+            );
+          });
+      </script>
     </a-scene>
   </body>
 </html>
