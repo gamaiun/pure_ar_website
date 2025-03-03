@@ -28,17 +28,17 @@
     </style>
   </head>
   <body>
-    <div id="loading">Loading model...</div>
+    <div id="loading">Loading...</div>
     <a-scene
-      arjs="sourceType: webcam; debugUIEnabled: false;"
+      arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
       renderer="logarithmicDepthBuffer: true;"
     >
-      <!-- Camera with GPS tracking (tracks user's real position) -->
+      <!-- Camera with GPS tracking -->
       <a-camera gps-camera rotation-reader position="0 1.6 0"></a-camera>
 
-      <!-- 3D Model - Anchored to URL-provided gpsLat and gpsLon -->
+      <!-- 3D Model - Anchored to URL GPS -->
       <a-entity
-        id="sphere"
+        id="object"
         gps-entity-place=""
         scale="0.5 0.5 0.5"
         gltf-model="url(https://firebasestorage.googleapis.com/v0/b/fireye-91940.firebasestorage.app/o/models%2FARObject1.glb?alt=media&token=a68ba586-0c9b-48c4-9bb1-9e25f430e1c8)"
@@ -46,18 +46,36 @@
     </a-scene>
 
     <script>
+      // Parse URL query parameters
+      function getQueryParams() {
+        const params = new URLSearchParams(window.location.search);
+        return {
+          gpsLat: parseFloat(params.get("gpsLat")),
+          gpsLon: parseFloat(params.get("gpsLon")),
+        };
+      }
+
       window.onload = () => {
         const scene = document.querySelector("a-scene");
-        const modelEntity = document.querySelector("#sphere");
+        const modelEntity = document.querySelector("#object");
         const loadingDiv = document.querySelector("#loading");
 
-        // Parse URL query parameters
-        function getQueryParams() {
-          const params = new URLSearchParams(window.location.search);
-          return {
-            gpsLat: parseFloat(params.get("gpsLat")),
-            gpsLon: parseFloat(params.get("gpsLon")),
-          };
+        // Get URL coordinates immediately
+        const { gpsLat, gpsLon } = getQueryParams();
+
+        if (gpsLat && gpsLon) {
+          console.log(`URL Coordinates: Lat ${gpsLat}, Lon ${gpsLon}`);
+          // Set GPS position before scene loads
+          modelEntity.setAttribute("gps-entity-place", {
+            latitude: gpsLat,
+            longitude: gpsLon,
+          });
+          // Set height (optional)
+          modelEntity.setAttribute("position", "0 0.5 0");
+        } else {
+          console.error("Missing gpsLat or gpsLon in URL.");
+          loadingDiv.textContent = "Error: Missing GPS coordinates in URL.";
+          return;
         }
 
         // Wait for scene to load
@@ -68,28 +86,19 @@
           modelEntity.addEventListener("model-loaded", () => {
             console.log("3D model loaded");
 
-            // Get GPS coordinates from URL
-            const { gpsLat, gpsLon } = getQueryParams();
-
-            if (gpsLat && gpsLon) {
-              console.log(`Anchoring to: Lat ${gpsLat}, Lon ${gpsLon}`);
-
-              // Set GPS position directly (no local position offset)
-              modelEntity.setAttribute("gps-entity-place", {
-                latitude: gpsLat,
-                longitude: gpsLon,
-              });
-
-              // Adjust height above ground (optional, since no position attribute)
-              modelEntity.setAttribute("position", "0 0.5 0"); // Only set height
-
-              // Show the scene
-              scene.classList.add("ready");
-              loadingDiv.style.display = "none";
+            // Verify GPS position
+            const gpsComponent = modelEntity.components["gps-entity-place"];
+            if (gpsComponent) {
+              console.log(
+                `Object GPS Position: Lat ${gpsComponent.latitude}, Lon ${gpsComponent.longitude}`
+              );
             } else {
-              console.error("Missing gpsLat or gpsLon in URL.");
-              loadingDiv.textContent = "Error: Missing GPS coordinates in URL.";
+              console.error("gps-entity-place component not initialized.");
             }
+
+            // Show the scene
+            scene.classList.add("ready");
+            loadingDiv.style.display = "none";
           });
 
           // Handle model loading errors
@@ -97,6 +106,14 @@
             console.error("Model failed to load:", event.detail);
             loadingDiv.textContent = "Error loading model. Check console.";
           });
+        });
+
+        // Debug GPS camera updates
+        const camera = document.querySelector("a-camera");
+        camera.addEventListener("gps-camera-update-position", (event) => {
+          console.log(
+            `User Position: Lat ${event.detail.position.latitude}, Lon ${event.detail.position.longitude}`
+          );
         });
       };
     </script>
