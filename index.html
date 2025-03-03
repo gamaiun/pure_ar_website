@@ -40,6 +40,30 @@
             );
           });
       </script>
+      <script>
+        function testGPS() {
+          if (!navigator.geolocation) {
+            logMessage("❌ Geolocation is not supported by this browser.");
+            return;
+          }
+
+          logMessage("🔄 Requesting GPS...");
+
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              logMessage(
+                `📍 Browser GPS: ${position.coords.latitude}, ${position.coords.longitude}`
+              );
+            },
+            (error) => {
+              logMessage(`❌ GPS Error: ${error.message}`);
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+          );
+        }
+
+        document.addEventListener("DOMContentLoaded", testGPS);
+      </script>
     </a-scene>
   </body>
 </html>
