@@ -13,31 +13,20 @@
       renderer="logarithmicDepthBuffer: true;"
     >
       <!-- Camera with GPS tracking -->
-      <a-camera gps-camera rotation-reader position="0 1.6 0"> </a-camera>
+      <a-camera gps-camera rotation-reader position="0 1.6 0"></a-camera>
 
-      <!--  Shpere - 2 meters northwest (x=-2, z=-2), scaled down -->
-      <a-box id="sphere" position="-2 0.5 -2" scale="1 1 1" color="yellow">
-      </a-box>
-
-      <!-- <a-sphere id="sphere" position="1 0.5 -1" radius="0.3" color="pink">
-      </a-sphere> -->
-
-      <!-- Floor plane for reference -->
-      <a-plane
-        position="0 0 0"
-        rotation="-90 0 0"
-        width="20"
-        height="20"
-        color="red"
-        opacity="0.5"
-      >
-      </a-plane>
+      <!-- 3D Model - 2 meters northwest (x=-2, z=-2), scaled down by half -->
+      <a-entity
+        id="sphere"
+        position="-2 0.5 -2"
+        scale="0.5 0.5 0.5"
+        gltf-model="url(https://firebasestorage.googleapis.com/v0/b/fireye-91940.firebasestorage.app/o/models%2FARObject1.glb?alt=media&token=a68ba586-0c9b-48c4-9bb1-9e25f430e1c8)"
+      ></a-entity>
     </a-scene>
 
     <script>
       window.onload = () => {
         const scene = document.querySelector("a-scene");
-        const cube = document.querySelector("#cube");
         const sphere = document.querySelector("#sphere");
 
         scene.addEventListener("loaded", () => {
@@ -50,10 +39,6 @@
                 const longitude = position.coords.longitude;
                 console.log(`Your location: Lat ${latitude}, Lon ${longitude}`);
 
-                cube.setAttribute("gps-entity-place", {
-                  latitude: latitude,
-                  longitude: longitude,
-                });
                 sphere.setAttribute("gps-entity-place", {
                   latitude: latitude,
                   longitude: longitude,
