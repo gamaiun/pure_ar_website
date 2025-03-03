@@ -1,63 +1,79 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AR Objects with GPS</title>
-    <!-- Include A-Frame library -->
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <!-- Include AR.js with GPS support -->
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
-</head>
-<body>
+  </head>
+  <body>
     <a-scene
-        vr-mode-ui="enabled: false"  <!-- Disables VR mode -->
-        arjs="sourceType: webcam; debugUIEnabled: false;"
-        renderer="logarithmicDepthBuffer: true;"
-        gps-entity-place="latitude: <your-latitude>; longitude: <your-longitude>;">
-        
-        <!-- Camera with GPS tracking -->
-        <a-camera
-            gps-camera
-            rotation-reader
-            position="0 1.6 0">
-        </a-camera>
+      vr-mode-ui="enabled: false"
+      arjs="sourceType: webcam; debugUIEnabled: false;"
+      renderer="logarithmicDepthBuffer: true;"
+    >
+      <!-- Camera with GPS tracking -->
+      <a-camera gps-camera rotation-reader position="0 1.6 0"> </a-camera>
 
-        <!-- Green Cube - 1 meter north (z=-1) -->
-        <a-box
-            position="0 0.5 -1"
-            scale="0.5 0.5 0.5"
-            color="green"
-            gps-entity-place="latitude: <your-latitude>; longitude: <your-longitude>;">
-        </a-box>
+      <!-- Green Cube - 1 meter in front of camera -->
+      <a-box id="cube" position="0 0.5 -1" scale="0.5 0.5 0.5" color="green">
+      </a-box>
 
-        <!-- Blue Sphere - 1 meter east (x=1) -->
-        <a-sphere
-            position="1 0.5 0"
-            radius="0.3"
-            color="blue"
-            gps-entity-place="latitude: 33.203190; longitude: 35.575120;">
-        </a-sphere>
+      <!-- Blue Sphere - 1 meter in front, slightly to the right -->
+      <a-sphere id="sphere" position="1 0.5 -1" radius="0.3" color="blue">
+      </a-sphere>
 
-        <!-- Floor plane (optional, for reference) -->
-        <a-plane
-            position="0 0 0"
-            rotation="-90 0 0"
-            width="20"
-            height="20"
-            color="#7BC8A4"
-            opacity="0.5">
-        </a-plane>
+      <!-- Floor plane for reference -->
+      <a-plane
+        position="0 0 0"
+        rotation="-90 0 0"
+        width="20"
+        height="20"
+        color="#7BC8A4"
+        opacity="0.5"
+      >
+      </a-plane>
     </a-scene>
 
     <script>
-        // Optional: Log when AR is ready
-        window.onload = () => {
-            const scene = document.querySelector('a-scene');
-            scene.addEventListener('loaded', () => {
-                console.log('AR Scene loaded');
-            });
-        };
+      window.onload = () => {
+        const scene = document.querySelector("a-scene");
+        const cube = document.querySelector("#cube");
+        const sphere = document.querySelector("#sphere");
+
+        // Wait for scene to load
+        scene.addEventListener("loaded", () => {
+          console.log("Scene loaded");
+
+          // Get current GPS position
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
+                console.log(`Your location: Lat ${latitude}, Lon ${longitude}`);
+
+                // Update entities with current GPS (optional for GPS anchoring)
+                cube.setAttribute("gps-entity-place", {
+                  latitude: latitude,
+                  longitude: longitude,
+                });
+                sphere.setAttribute("gps-entity-place", {
+                  latitude: latitude,
+                  longitude: longitude,
+                });
+              },
+              (error) => {
+                console.error("GPS Error:", error.message);
+              },
+              { enableHighAccuracy: true }
+            );
+          } else {
+            console.error("Geolocation not supported by this browser.");
+          }
+        });
+      };
     </script>
-</body>
+  </body>
 </html>
