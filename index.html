@@ -47,7 +47,10 @@
     </a-scene>
 
     <script>
+      console.log("Script started");
+
       function getQueryParams() {
+        console.log("Parsing query params");
         const params = new URLSearchParams(window.location.search);
         return {
           gpsLat: parseFloat(params.get("gpsLat")),
@@ -61,16 +64,23 @@
       }
 
       function calculateOffset(userLat, userLon, targetLat, targetLon) {
-        const R = 6371000; // Earth radius in meters
+        console.log("Calculating offset:", {
+          userLat,
+          userLon,
+          targetLat,
+          targetLon,
+        });
+        const R = 6371000;
         const dLat = toRadians(targetLat - userLat);
         const dLon = toRadians(targetLon - userLon);
         const latAvg = toRadians((userLat + targetLat) / 2);
         const x = R * dLon * Math.cos(latAvg);
         const z = -R * dLat;
-        return { x, z };
+        return { x: isNaN(x) ? 0 : x, z: isNaN(z) ? 0 : z };
       }
 
       window.onload = () => {
+        console.log("Window loaded");
         const scene = document.querySelector("a-scene");
         const modelEntity = document.querySelector("#object");
         const camera = document.querySelector("a-camera");
@@ -89,53 +99,45 @@
         scene.addEventListener("loaded", () => {
           console.log("Scene loaded");
 
+          // Start GPS immediately
+          console.log("Starting geolocation");
+          navigator.geolocation.watchPosition(
+            (position) => {
+              const userLat = parseFloat(position.coords.latitude.toFixed(14));
+              const userLon = parseFloat(position.coords.longitude.toFixed(14));
+              console.log(`User: Lat ${userLat}, Lon ${userLon}`);
+
+              const offset = calculateOffset(userLat, userLon, gpsLat, gpsLon);
+              console.log(
+                `Offset: x=${offset.x.toFixed(2)}, z=${offset.z.toFixed(2)}`
+              );
+
+              if (!modelEntity.getAttribute("data-anchored")) {
+                const worldPos = new THREE.Vector3(offset.x, 0.5, offset.z);
+                modelEntity.object3D.position.copy(worldPos);
+                scene.object3D.add(modelEntity.object3D);
+                modelEntity.object3D.updateMatrixWorld(true);
+                modelEntity.setAttribute("data-anchored", "true");
+                console.log(
+                  `Anchored at: x=${worldPos.x.toFixed(
+                    2
+                  )}, z=${worldPos.z.toFixed(2)}`
+                );
+              }
+
+              camera.object3D.position.set(0, 1.6, 0);
+              scene.classList.add("ready");
+              loadingDiv.style.display = "none";
+            },
+            (error) => {
+              console.error("GPS Error:", error.message);
+              loadingDiv.textContent = "GPS Error: " + error.message;
+            },
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+          );
+
           modelEntity.addEventListener("model-loaded", () => {
             console.log("Model loaded");
-            let anchored = false;
-
-            navigator.geolocation.watchPosition(
-              (position) => {
-                const userLat = parseFloat(
-                  position.coords.latitude.toFixed(14)
-                );
-                const userLon = parseFloat(
-                  position.coords.longitude.toFixed(14)
-                );
-                console.log(`User: Lat ${userLat}, Lon ${userLon}`);
-
-                const offset = calculateOffset(
-                  userLat,
-                  userLon,
-                  gpsLat,
-                  gpsLon
-                );
-                console.log(
-                  `Offset: x=${offset.x.toFixed(2)}, z=${offset.z.toFixed(2)}`
-                );
-
-                if (!anchored) {
-                  const worldPos = new THREE.Vector3(offset.x, 0.5, offset.z);
-                  modelEntity.object3D.position.copy(worldPos);
-                  scene.object3D.add(modelEntity.object3D);
-                  modelEntity.object3D.updateMatrixWorld(true);
-                  anchored = true;
-                  console.log(
-                    `Anchored at: x=${worldPos.x.toFixed(
-                      2
-                    )}, z=${worldPos.z.toFixed(2)}`
-                  );
-                }
-
-                camera.object3D.position.set(0, 1.6, 0);
-                scene.classList.add("ready");
-                loadingDiv.style.display = "none";
-              },
-              (error) => {
-                console.error("GPS Error:", error.message);
-                loadingDiv.textContent = "GPS Error: " + error.message;
-              },
-              { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-            );
           });
 
           modelEntity.addEventListener("model-error", (event) => {
