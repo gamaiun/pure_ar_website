@@ -111,31 +111,27 @@
         });
       }, 3000);
 
-      // ✅ Fix: Restart AR.js in AR Mode
-      document.addEventListener("enter-ar", () => {
-        logMessage("🔄 Re-initializing GPS tracking in AR mode...");
-        const scene = document.querySelector("a-scene");
-        scene.setAttribute(
-          "arjs",
-          "sourceType: webcam; debugUIEnabled: false;"
-        );
+      // ✅ Fix: Restart A-Frame Scene After Load
+      document.addEventListener("DOMContentLoaded", () => {
+        setTimeout(() => {
+          logMessage("🔄 Forcing scene re-render...");
+          const scene = document.querySelector("a-scene");
+          scene.style.display = "none";
+          setTimeout(() => {
+            scene.style.display = "block";
+            logMessage("✅ Scene refreshed!");
+          }, 500);
+        }, 1000);
       });
 
-      // ✅ Check WebXR Support
-      document.addEventListener("enter-ar", () => {
-        if (navigator.xr) {
-          navigator.xr
-            .requestSession("immersive-ar")
-            .then(() => {
-              logMessage("✅ WebXR Session Started");
-            })
-            .catch((err) => {
-              logMessage(`❌ WebXR Error: ${err.message}`);
-            });
-        } else {
-          logMessage("❌ WebXR not supported");
+      // ✅ Log Camera Position Continuously
+      setInterval(() => {
+        const camera = document.querySelector("[gps-camera]");
+        if (camera) {
+          const pos = camera.getAttribute("position");
+          logMessage(`📍 Camera Position: x=${pos.x}, y=${pos.y}, z=${pos.z}`);
         }
-      });
+      }, 3000);
     </script>
   </body>
 </html>
