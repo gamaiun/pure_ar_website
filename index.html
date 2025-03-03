@@ -90,12 +90,12 @@
 
           modelEntity.addEventListener("model-loaded", () => {
             console.log("Model loaded");
-            let anchorPos = null;
+            let anchored = false;
 
             navigator.geolocation.watchPosition(
               (position) => {
-                const userLat = position.coords.latitude;
-                const userLon = position.coords.longitude;
+                const userLat = position.coords.latitude.toFixed(14); // Match URL precision
+                const userLon = position.coords.longitude.toFixed(14);
                 console.log(`User: Lat ${userLat}, Lon ${userLon}`);
 
                 const offset = calculateOffset(
@@ -108,29 +108,20 @@
                   `Offset: x=${offset.x.toFixed(2)}, z=${offset.z.toFixed(2)}`
                 );
 
-                if (!anchorPos) {
-                  anchorPos = new THREE.Vector3(offset.x, 0.5, offset.z);
-                  modelEntity.object3D.position.copy(anchorPos);
+                if (!anchored) {
+                  const worldPos = new THREE.Vector3(offset.x, 0.5, offset.z);
+                  modelEntity.object3D.position.copy(worldPos);
                   scene.object3D.add(modelEntity.object3D); // World space
+                  modelEntity.object3D.updateMatrixWorld(true);
+                  anchored = true;
                   console.log(
-                    `Anchored at: x=${anchorPos.x.toFixed(
+                    `Anchored at: x=${worldPos.x.toFixed(
                       2
-                    )}, z=${anchorPos.z.toFixed(2)}`
+                    )}, z=${worldPos.z.toFixed(2)}`
                   );
                 }
 
-                // Move camera, not object
-                const camOffset = calculateOffset(
-                  userLat,
-                  userLon,
-                  gpsLat,
-                  gpsLon
-                );
-                camera.object3D.position.set(
-                  camOffset.x - anchorPos.x,
-                  1.6,
-                  camOffset.z - anchorPos.z
-                );
+                camera.object3D.position.set(0, 1.6, 0); // Camera stays at origin
 
                 scene.classList.add("ready");
                 loadingDiv.style.display = "none";
