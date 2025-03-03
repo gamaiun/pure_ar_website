@@ -33,23 +33,12 @@
       arjs="sourceType: webcam; debugUIEnabled: false;"
       renderer="logarithmicDepthBuffer: true;"
     >
-      <!-- Camera with GPS tracking -->
-      <a-camera gps-camera rotation-reader position="0 1.6 0"></a-camera>
+      <!-- Camera -->
+      <a-camera rotation-reader position="0 1.6 0"></a-camera>
 
-      <!-- Fallback box if model fails -->
-      <a-box
-        id="fallback"
-        gps-entity-place=""
-        position="0 0.5 0"
-        scale="0.5 0.5 0.5"
-        color="red"
-        visible="false"
-      ></a-box>
-
-      <!-- 3D Model at URL GPS coordinates -->
+      <!-- 3D Model -->
       <a-entity
         id="object"
-        gps-entity-place=""
         position="0 0.5 0"
         scale="0.5 0.5 0.5"
         gltf-model="url(https://firebasestorage.googleapis.com/v0/b/fireye-91940.firebasestorage.app/o/models%2FARObject1.glb?alt=media&token=a68ba586-0c9b-48c4-9bb1-9e25f430e1c8)"
@@ -66,10 +55,27 @@
         };
       }
 
+      // Convert degrees to radians
+      function toRadians(degrees) {
+        return (degrees * Math.PI) / 180;
+      }
+
+      // Calculate position offset in meters
+      function calculateOffset(userLat, userLon, targetLat, targetLon) {
+        const R = 6371000; // Earth radius in meters
+        const dLat = toRadians(targetLat - userLat);
+        const dLon = toRadians(targetLon - userLon);
+        const latAvg = toRadians((userLat + targetLat) / 2);
+
+        const x = R * dLon * Math.cos(latAvg); // East-west (meters)
+        const z = R * dLat; // North-south (meters, negated for A-Frame)
+
+        return { x, z: -z }; // +x east, -z north
+      }
+
       window.onload = () => {
         const scene = document.querySelector("a-scene");
         const modelEntity = document.querySelector("#object");
-        const fallbackEntity = document.querySelector("#fallback");
         const loadingDiv = document.querySelector("#loading");
 
         // Get URL coordinates
@@ -83,60 +89,55 @@
 
         console.log(`Target Coordinates: Lat ${gpsLat}, Lon ${gpsLon}`);
 
-        // Set GPS position in HTML
-        const gpsString = `latitude: ${gpsLat}; longitude: ${gpsLon}`;
-        modelEntity.setAttribute("gps-entity-place", gpsString);
-        fallbackEntity.setAttribute("gps-entity-place", gpsString);
-
         // Wait for scene to load
         scene.addEventListener("loaded", () => {
           console.log("Scene core loaded");
-
-          // Check GPS component early
-          const gpsComponent = modelEntity.components["gps-entity-place"];
-          if (gpsComponent) {
-            console.log(
-              `Initial Object GPS: Lat ${gpsComponent.latitude}, Lon ${gpsComponent.longitude}`
-            );
-          } else {
-            console.error("gps-entity-place not initialized yet.");
-          }
 
           // Wait for model to load
           modelEntity.addEventListener("model-loaded", () => {
             console.log("3D model loaded");
 
-            // Verify GPS
-            const gpsComponentFinal =
-              modelEntity.components["gps-entity-place"];
-            if (gpsComponentFinal) {
-              console.log(
-                `Final Object GPS: Lat ${gpsComponentFinal.latitude}, Lon ${gpsComponentFinal.longitude}`
+            // Watch user position
+            if (navigator.geolocation) {
+              navigator.geolocation.watchPosition(
+                (position) => {
+                  const userLat = position.coords.latitude;
+                  const userLon = position.coords.longitude;
+                  console.log(`User Position: Lat ${userLat}, Lon ${userLon}`);
+
+                  // Calculate offset from user to target
+                  const { x, z } = calculateOffset(
+                    userLat,
+                    userLon,
+                    gpsLat,
+                    gpsLon
+                  );
+                  console.log(`Offset: x=${x.toFixed(2)}m, z=${z.toFixed(2)}m`);
+
+                  // Set position
+                  modelEntity.object3D.position.set(x, 0.5, z);
+
+                  // Show scene
+                  scene.classList.add("ready");
+                  loadingDiv.style.display = "none";
+                },
+                (error) => {
+                  console.error("GPS Error:", error.message);
+                  loadingDiv.textContent = "GPS Error: " + error.message;
+                },
+                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
               );
             } else {
-              console.error("gps-entity-place still not initialized.");
-              fallbackEntity.setAttribute("visible", "true"); // Show fallback
+              console.error("Geolocation not supported.");
+              loadingDiv.textContent = "Geolocation not supported.";
             }
-
-            // Show scene
-            scene.classList.add("ready");
-            loadingDiv.style.display = "none";
           });
 
           // Handle model errors
           modelEntity.addEventListener("model-error", (event) => {
             console.error("Model failed to load:", event.detail);
             loadingDiv.textContent = "Error loading model.";
-            fallbackEntity.setAttribute("visible", "true");
           });
-        });
-
-        // Debug user position
-        const camera = document.querySelector("a-camera");
-        camera.addEventListener("gps-camera-update-position", (event) => {
-          console.log(
-            `User Position: Lat ${event.detail.position.latitude}, Lon ${event.detail.position.longitude}`
-          );
         });
       };
     </script>
