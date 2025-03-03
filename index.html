@@ -67,11 +67,10 @@
         const dLat = toRadians(targetLat - userLat);
         const dLon = toRadians(targetLon - userLon);
         const latAvg = toRadians((userLat + targetLat) / 2);
-
-        const x = R * dLon * Math.cos(latAvg);
-        const z = R * dLat;
-
-        return { x, z: -z };
+        return {
+          x: R * dLon * Math.cos(latAvg),
+          z: -R * dLat,
+        };
       }
 
       window.onload = () => {
@@ -81,86 +80,70 @@
         const loadingDiv = document.querySelector("#loading");
 
         const { gpsLat, gpsLon } = getQueryParams();
-
         if (!gpsLat || !gpsLon) {
-          console.error("Missing gpsLat or gpsLon in URL.");
-          loadingDiv.textContent = "Error: Missing GPS coordinates in URL.";
+          console.error("Missing gpsLat or gpsLon.");
+          loadingDiv.textContent = "Error: Missing GPS.";
           return;
         }
 
-        console.log(`Target Coordinates: Lat ${gpsLat}, Lon ${gpsLon}`);
+        console.log(`Target: Lat ${gpsLat}, Lon ${gpsLon}`);
 
         scene.addEventListener("loaded", () => {
-          console.log("Scene core loaded");
+          console.log("Scene loaded");
 
           modelEntity.addEventListener("model-loaded", () => {
-            console.log("3D model loaded");
+            console.log("Model loaded");
+            let initialSet = false;
+            let anchorPos = null;
 
-            if (navigator.geolocation) {
-              let initialSet = false;
-              let worldOffset = null;
+            navigator.geolocation.watchPosition(
+              (position) => {
+                const userLat = position.coords.latitude;
+                const userLon = position.coords.longitude;
+                console.log(`User: Lat ${userLat}, Lon ${userLon}`);
 
-              navigator.geolocation.watchPosition(
-                (position) => {
-                  const userLat = position.coords.latitude;
-                  const userLon = position.coords.longitude;
-                  console.log(`User Position: Lat ${userLat}, Lon ${userLon}`);
+                const offset = calculateOffset(
+                  userLat,
+                  userLon,
+                  gpsLat,
+                  gpsLon
+                );
+                console.log(
+                  `Offset: x=${offset.x.toFixed(2)}, z=${offset.z.toFixed(2)}`
+                );
 
-                  const offset = calculateOffset(
-                    userLat,
-                    userLon,
-                    gpsLat,
-                    gpsLon
-                  );
+                if (!initialSet) {
+                  anchorPos = new THREE.Vector3(offset.x, 0.5, offset.z);
+                  modelEntity.object3D.position.copy(anchorPos);
+                  scene.object3D.add(modelEntity.object3D); // Ensure world space
+                  initialSet = true;
                   console.log(
-                    `Offset: x=${offset.x.toFixed(2)}m, z=${offset.z.toFixed(
+                    `Anchored at: x=${anchorPos.x.toFixed(
                       2
-                    )}m`
+                    )}, z=${anchorPos.z.toFixed(2)}`
                   );
+                }
 
-                  if (!initialSet) {
-                    // Set initial world position
-                    worldOffset = offset;
-                    modelEntity.object3D.position.set(
-                      worldOffset.x,
-                      0.5,
-                      worldOffset.z
-                    );
-                    initialSet = true;
-                    console.log(
-                      `Initial World Position: x=${worldOffset.x.toFixed(
-                        2
-                      )}, z=${worldOffset.z.toFixed(2)}`
-                    );
-                  }
+                camera.object3D.position.set(
+                  offset.x - anchorPos.x,
+                  1.6,
+                  offset.z - anchorPos.z
+                );
+                console.log(
+                  `Camera: x=${camera.object3D.position.x.toFixed(
+                    2
+                  )}, z=${camera.object3D.position.z.toFixed(2)}`
+                );
 
-                  // Update camera position to match user movement
-                  const camOffset = calculateOffset(
-                    userLat,
-                    userLon,
-                    gpsLat,
-                    gpsLon
-                  );
-                  const dx = camOffset.x - worldOffset.x;
-                  const dz = camOffset.z - worldOffset.z;
-                  camera.object3D.position.set(dx, 1.6, dz);
-                  console.log(
-                    `Camera Adjusted: dx=${dx.toFixed(2)}, dz=${dz.toFixed(2)}`
-                  );
-
-                  scene.classList.add("ready");
-                  loadingDiv.style.display = "none";
-                },
-                (error) => {
-                  console.error("GPS Error:", error.message);
-                  loadingDiv.textContent = "GPS Error: " + error.message;
-                },
-                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-              );
-            } else {
-              console.error("Geolocation not supported.");
-              loadingDiv.textContent = "Geolocation not supported.";
-            }
+                scene.classList.add("ready");
+                loadingDiv.style.display = "none";
+              },
+              (error) => {
+                console.error("GPS Error:", error.message);
+                loadingDiv.textContent = "GPS Error: " + error.message;
+              },
+              { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+            );
           });
 
           modelEntity.addEventListener("model-error", (event) => {
