@@ -36,10 +36,10 @@
       <!-- Camera with GPS tracking -->
       <a-camera gps-camera rotation-reader position="0 1.6 0"></a-camera>
 
-      <!-- 3D Model with initial GPS placeholder -->
+      <!-- 3D Model with gps-projected-entity-place -->
       <a-entity
         id="object"
-        gps-entity-place="latitude: 0; longitude: 0"
+        gps-projected-entity-place=""
         position="0 0.5 0"
         scale="0.5 0.5 0.5"
         gltf-model="url(https://firebasestorage.googleapis.com/v0/b/fireye-91940.firebasestorage.app/o/models%2FARObject1.glb?alt=media&token=a68ba586-0c9b-48c4-9bb1-9e25f430e1c8)"
@@ -73,7 +73,7 @@
         console.log(`URL Coordinates: Lat ${gpsLat}, Lon ${gpsLon}`);
 
         // Set GPS position immediately
-        modelEntity.setAttribute("gps-entity-place", {
+        modelEntity.setAttribute("gps-projected-entity-place", {
           latitude: gpsLat,
           longitude: gpsLon,
         });
@@ -82,8 +82,8 @@
         scene.addEventListener("loaded", () => {
           console.log("Scene core loaded");
 
-          // Reapply GPS to ensure it sticks
-          modelEntity.setAttribute("gps-entity-place", {
+          // Reapply GPS
+          modelEntity.setAttribute("gps-projected-entity-place", {
             latitude: gpsLat,
             longitude: gpsLon,
           });
@@ -93,7 +93,8 @@
             console.log("3D model loaded");
 
             // Check GPS component
-            const gpsComponent = modelEntity.components["gps-entity-place"];
+            const gpsComponent =
+              modelEntity.components["gps-projected-entity-place"];
             if (gpsComponent) {
               console.log(
                 `Object GPS Position: Lat ${gpsComponent.latitude}, Lon ${gpsComponent.longitude}`
@@ -103,13 +104,15 @@
                 gpsComponent.longitude !== gpsLon
               ) {
                 console.warn("GPS values mismatch! Reapplying...");
-                modelEntity.setAttribute("gps-entity-place", {
+                modelEntity.setAttribute("gps-projected-entity-place", {
                   latitude: gpsLat,
                   longitude: gpsLon,
                 });
               }
             } else {
-              console.error("gps-entity-place component not initialized.");
+              console.error(
+                "gps-projected-entity-place component not initialized."
+              );
             }
 
             // Show the scene
