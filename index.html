@@ -29,7 +29,6 @@
     <a-scene>
       <a-box position="0 1 -3" color="blue"></a-box>
       <a-sphere position="1 1 -5" radius="0.5" color="red"></a-sphere>
-      <!-- <a-camera gps-camera rotation-reader gpsMinDistance="2"></a-camera> -->
       <a-camera gps-camera="gpsMinDistance: 1;" rotation-reader></a-camera>
     </a-scene>
 
@@ -65,13 +64,25 @@
     </script>
 
     <script>
+      // ✅ Log GPS Updates from AR.js
       document
-        .querySelector("[gps-camera]")
+        .querySelector("a-camera")
         ?.addEventListener("gps-camera-update", (event) => {
           logMessage(
-            `📍 GPS Updated: ${event.detail.position.latitude}, ${event.detail.position.longitude}`
+            `📍 GPS Updated (AR.js): ${event.detail.position.latitude}, ${event.detail.position.longitude}`
           );
         });
+
+      // ✅ Force GPS Updates Every 5 Seconds
+      setInterval(() => {
+        logMessage("🔄 Forcing AR.js GPS update...");
+        const gpsCamera = document.querySelector("[gps-camera]");
+        if (gpsCamera) {
+          gpsCamera.setAttribute("gpsMinDistance", "0.5");
+        } else {
+          logMessage("❌ gps-camera not found!");
+        }
+      }, 5000); // Runs every 5 seconds
     </script>
   </body>
 </html>
