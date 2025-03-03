@@ -1,161 +1,3 @@
-<!-- <!DOCTYPE html>
-<html>
-  <head>
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, user-scalable=no"
-    />
-
-    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/jeromeetienne/AR.js/1.7.2/aframe/build/aframe-ar.min.js"></script>
-
-    <style>
-      .a-enter-vr,
-      .a-enter-vr-button {
-        display: none !important; /* Hide VR button */
-      }
-
-      .a-enter-ar,
-      .a-enter-ar-button {
-        position: fixed !important;
-        bottom: 20px !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        z-index: 9999 !important;
-        width: auto !important;
-        padding: 10px 15px !important;
-      }
-    </style>
-  </head>
-
-  <script>
-    function logMessage(message) {
-      document.body.innerHTML += `<p style="color:blue;">${message}</p>`;
-      console.log(message);
-    }
-
-    async function requestPermissions() {
-      try {
-        await navigator.mediaDevices.getUserMedia({ video: true });
-        logMessage("✅ Camera permission granted!");
-      } catch (err) {
-        logMessage("❌ Camera permission denied: " + err);
-      }
-    }
-
-    function initARScene() {
-      logMessage("🔹 Initializing AR Scene...");
-
-      const modelSrc =
-        "https://firebasestorage.googleapis.com/v0/b/fireye-91940.firebasestorage.app/o/models%2FARObject1.glb?alt=media&token=a68ba586-0c9b-48c4-9bb1-9e25f430e1c8";
-
-      const urlParams = new URLSearchParams(window.location.search);
-      const gpsLat = parseFloat(urlParams.get("gpsLat")) || 33.20322;
-      const gpsLon = parseFloat(urlParams.get("gpsLon")) || 35.57516;
-      const posX = parseFloat(urlParams.get("x")) || 0.0;
-      const posY = parseFloat(urlParams.get("y")) || 0.0;
-      const posZ = parseFloat(urlParams.get("z")) || 0.0;
-      const scale = parseFloat(urlParams.get("scale")) || 1.0;
-
-      logMessage(`📍 GPS: ${gpsLat}, ${gpsLon}`);
-      logMessage(`📏 Position Offset: x=${posX}, y=${posY}, z=${posZ}`);
-      logMessage(`📌 Scale: ${scale}`);
-      logMessage(
-        `🖼️ Model URL: <a href="${modelSrc}" target="_blank">${modelSrc}</a>`
-      );
-
-      fetch(modelSrc)
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-          }
-          logMessage("✅ Model is accessible from Firebase!");
-        })
-        .catch((error) => logMessage(`❌ Model access error: ${error}`));
-
-      function waitForScene() {
-        const scene = document.querySelector("a-scene");
-        if (!scene) {
-          logMessage("⏳ Waiting for A-Frame scene to load...");
-          return setTimeout(waitForScene, 500);
-        }
-
-        scene.addEventListener("loaded", () => {
-          logMessage("✅ A-Frame Scene Loaded!");
-          addModelToScene(scene);
-        });
-      }
-
-      function addModelToScene(scene) {
-        const model = document.createElement("a-entity");
-        model.setAttribute(
-          "gps-entity-place",
-          `latitude: ${gpsLat}; longitude: ${gpsLon}`
-        );
-        model.setAttribute("gltf-model", modelSrc);
-        model.setAttribute("position", `${posX} ${posY} ${posZ}`);
-        model.setAttribute("rotation", "0 180 0");
-        model.setAttribute("crossorigin", "anonymous");
-
-        model.addEventListener("model-loaded", () =>
-          logMessage("✅ Model loaded!")
-        );
-        model.addEventListener("error", (e) =>
-          logMessage(`❌ Model load error: ${e}`)
-        );
-
-        scene.appendChild(model);
-        logMessage("✅ Model added to scene!");
-
-        // 🔹 Debug Marker: Adds a small red sphere at the model’s GPS location
-        const debugMarker = document.createElement("a-sphere");
-        debugMarker.setAttribute(
-          "gps-entity-place",
-          `latitude: ${gpsLat}; longitude: ${gpsLon}`
-        );
-        debugMarker.setAttribute("radius", "0.5");
-        debugMarker.setAttribute("color", "red");
-        scene.appendChild(debugMarker);
-        logMessage("✅ Debug marker added!");
-      }
-
-      waitForScene();
-    }
-
-    document.addEventListener("DOMContentLoaded", async () => {
-      await requestPermissions();
-      initARScene();
-    });
-
-    window.onerror = function (message, source, lineno, colno, error) {
-      document.body.innerHTML += `
-          <h2 style="color:red">❌ Error Detected:</h2>
-          <p>${message}</p>
-          <p>Source: ${source}</p>
-          <p>Line: ${lineno}, Column: ${colno}</p>
-        `;
-      console.error(
-        "Error:",
-        message,
-        "at",
-        source,
-        "Line:",
-        lineno,
-        "Col:",
-        colno,
-        "Details:",
-        error
-      );
-    };
-  </script>
-
-  <body>
-    <a-scene embedded arjs="sourceType: webcam; trackingMethod: best;">
-      <a-camera gps-camera rotation-reader gpsMinDistance="2"></a-camera>
-    </a-scene>
-  </body>
-</html> -->
-
 <!DOCTYPE html>
 <html>
   <head>
@@ -170,9 +12,8 @@
     <style>
       .a-enter-vr,
       .a-enter-vr-button {
-        display: none !important; /* Hide VR button */
+        display: none !important;
       }
-
       .a-enter-ar,
       .a-enter-ar-button {
         position: fixed !important;
@@ -222,29 +63,21 @@
         `🖼️ Model URL: <a href="${modelSrc}" target="_blank">${modelSrc}</a>`
       );
 
-      fetch(modelSrc)
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-          }
-          logMessage("✅ Model is accessible from Firebase!");
-        })
-        .catch((error) => logMessage(`❌ Model access error: ${error}`));
-
-      function waitForScene() {
-        const scene = document.querySelector("a-scene");
-        if (!scene) {
-          logMessage("⏳ Waiting for A-Frame scene to load...");
-          return setTimeout(waitForScene, 500);
+      function waitForGPS() {
+        const camera = document.querySelector("[gps-camera]");
+        if (!camera || !camera.components["gps-camera"]) {
+          logMessage("⏳ Waiting for GPS signal...");
+          setTimeout(waitForGPS, 500);
+          return;
         }
 
-        scene.addEventListener("loaded", () => {
-          logMessage("✅ A-Frame Scene Loaded!");
-          addModelToScene(scene);
-        });
+        logMessage("✅ GPS signal received! Adding model to scene...");
+        addModelToScene();
       }
 
-      function addModelToScene(scene) {
+      function addModelToScene() {
+        const scene = document.querySelector("a-scene");
+
         const model = document.createElement("a-entity");
         model.setAttribute(
           "gps-entity-place",
@@ -277,7 +110,7 @@
         logMessage("✅ Debug marker added!");
       }
 
-      waitForScene();
+      waitForGPS();
     }
 
     document.addEventListener("DOMContentLoaded", async () => {
