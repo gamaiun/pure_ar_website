@@ -1,5 +1,6 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js";
 import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/loaders/GLTFLoader.js";
+import * as Cesium from "https://cesium.com/downloads/cesiumjs/releases/1.125/Build/Cesium/Cesium.js";
 
 function getQueryParams() {
   console.log("Parsing query params");
@@ -12,9 +13,6 @@ function getQueryParams() {
     firebaseId: params.get("firebaseId"),
   };
 }
-
-// Rest of the script...
-const loader = new GLTFLoader();
 
 window.onload = () => {
   console.log("Script started");
@@ -68,19 +66,22 @@ window.onload = () => {
   backgroundMesh.material.depthWrite = false;
   scene.add(backgroundMesh);
 
-  // Load the 3D model with GLTFLoader check
-  if (!THREE.GLTFLoader) {
-    console.error(
-      "GLTFLoader is not available in THREE. Check script loading."
-    );
-    document.getElementById("loading").textContent =
-      "Error loading GLTFLoader.";
-    return;
-  }
-  const loader = new THREE.GLTFLoader();
+  // Load the 3D model
+  const modelMap = {
+    "Marker 1":
+      "https://firebasestorage.googleapis.com/v0/b/ieye-453408.firebasestorage.app/o/ARObject1.glb?alt=media&token=3e5c3d8a-f4ff-4015-aebe-de9944ff8e65",
+    "Marker 2":
+      "https://firebasestorage.googleapis.com/v0/b/ieye-453408.firebasestorage.app/o/ARObject1.glb?alt=media&token=3e5c3d8a-f4ff-4015-aebe-de9944ff8e65",
+    "Marker 3":
+      "https://firebasestorage.googleapis.com/v0/b/ieye-453408.firebasestorage.app/o/ARObject1.glb?alt=media&token=3e5c3d8a-f4ff-4015-aebe-de9944ff8e65",
+    default:
+      "https://firebasestorage.googleapis.com/v0/b/ieye-453408.firebasestorage.app/o/ARObject1.glb?alt=media&token=3e5c3d8a-f4ff-4015-aebe-de9944ff8e65",
+  };
+  const modelUrl = modelMap[objectId] || modelMap["default"];
+  const loader = new GLTFLoader();
   let model;
   loader.load(
-    "https://firebasestorage.googleapis.com/v0/b/ieye-453408.firebasestorage.app/o/ARObject1.glb?alt=media&token=3e5c3d8a-f4ff-4015-aebe-de9944ff8e65",
+    modelUrl,
     (gltf) => {
       model = gltf.scene;
       model.scale.set(scale, scale, scale);
