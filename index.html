@@ -38,12 +38,7 @@
         position="0 1.6 0"
         camera="far: 1000;"
       ></a-camera>
-      <a-entity
-        id="object"
-        position="0 0.5 0"
-        scale="0.5 0.5 0.5"
-        gltf-model="url(https://firebasestorage.googleapis.com/v0/b/fireye-91940.firebasestorage.app/o/models%2FARObject1.glb?alt=media&token=a68ba586-0c9b-48c4-9bb1-9e25f430e1c8)"
-      ></a-entity>
+      <a-entity id="object" position="0 0.5 0" scale="0.5 0.5 0.5"></a-entity>
     </a-scene>
 
     <script>
@@ -56,8 +51,8 @@
           gpsLat: parseFloat(params.get("gpsLat")),
           gpsLon: parseFloat(params.get("gpsLon")),
           scale: parseFloat(params.get("scale")) || 0.5,
-          objectId: params.get("objectId") || "default", // Default to a fallback model
-          firebaseId: params.get("firebaseId"), // Optional for logging
+          objectId: params.get("objectId") || "default",
+          firebaseId: params.get("firebaseId"),
         };
       }
 
@@ -72,7 +67,7 @@
           targetLat,
           targetLon,
         });
-        const R = 6371000; // Earth's radius in meters
+        const R = 6371000;
         const dLat = toRadians(targetLat - userLat);
         const dLon = toRadians(targetLon - userLon);
         const latAvg = toRadians((userLat + targetLat) / 2);
@@ -100,16 +95,16 @@
           `Target: Lat ${gpsLat}, Lon ${gpsLon}, Scale ${scale}, ObjectId ${objectId}, FirebaseId ${firebaseId}`
         );
 
-        // Dynamically set the model based on objectId
+        // Updated modelMap with correct URL from ieye-453408 bucket
         const modelMap = {
           "Marker 1":
-            "https://firebasestorage.googleapis.com/v0/b/fireye-91940.appspot.com/o/models%2FARObject1.glb?alt=media&token=a68ba586-0c9b-48c4-9bb1-9e25f430e1c8",
+            "https://firebasestorage.googleapis.com/v0/b/ieye-453408.appspot.com/o/ARObject1.glb?alt=media&token=3e5c3d8a-f4ff-4015-aebe-de9944ff8e65",
           "Marker 2":
-            "https://firebasestorage.googleapis.com/v0/b/fireye-91940.appspot.com/o/models%2FARObject2.glb?alt=media&token=your-token-here", // Replace with actual URL and token
+            "https://firebasestorage.googleapis.com/v0/b/ieye-453408.appspot.com/o/ARObject1.glb?alt=media&token=3e5c3d8a-f4ff-4015-aebe-de9944ff8e65",
           "Marker 3":
-            "https://firebasestorage.googleapis.com/v0/b/fireye-91940.appspot.com/o/models%2FARObject3.glb?alt=media&token=your-token-here", // Replace with actual URL and token
+            "https://firebasestorage.googleapis.com/v0/b/ieye-453408.appspot.com/o/ARObject1.glb?alt=media&token=3e5c3d8a-f4ff-4015-aebe-de9944ff8e65",
           default:
-            "https://firebasestorage.googleapis.com/v0/b/fireye-91940.appspot.com/o/models%2FARObject1.glb?alt=media&token=a68ba586-0c9b-48c4-9bb1-9e25f430e1c8",
+            "https://firebasestorage.googleapis.com/v0/b/ieye-453408.appspot.com/o/ARObject1.glb?alt=media&token=3e5c3d8a-f4ff-4015-aebe-de9944ff8e65",
         };
         modelEntity.setAttribute(
           "gltf-model",
