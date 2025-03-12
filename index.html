@@ -56,6 +56,8 @@
           gpsLat: parseFloat(params.get("gpsLat")),
           gpsLon: parseFloat(params.get("gpsLon")),
           scale: parseFloat(params.get("scale")) || 0.5,
+          objectId: params.get("objectId") || "default", // Default to a fallback model
+          firebaseId: params.get("firebaseId"), // Optional for logging
         };
       }
 
@@ -70,7 +72,7 @@
           targetLat,
           targetLon,
         });
-        const R = 6371000;
+        const R = 6371000; // Earth's radius in meters
         const dLat = toRadians(targetLat - userLat);
         const dLon = toRadians(targetLon - userLon);
         const latAvg = toRadians((userLat + targetLat) / 2);
@@ -86,14 +88,33 @@
         const camera = document.querySelector("a-camera");
         const loadingDiv = document.querySelector("#loading");
 
-        const { gpsLat, gpsLon, scale } = getQueryParams();
+        const { gpsLat, gpsLon, scale, objectId, firebaseId } =
+          getQueryParams();
         if (!gpsLat || !gpsLon) {
           console.error("Missing gpsLat or gpsLon.");
           loadingDiv.textContent = "Error: Missing GPS.";
           return;
         }
 
-        console.log(`Target: Lat ${gpsLat}, Lon ${gpsLon}, Scale ${scale}`);
+        console.log(
+          `Target: Lat ${gpsLat}, Lon ${gpsLon}, Scale ${scale}, ObjectId ${objectId}, FirebaseId ${firebaseId}`
+        );
+
+        // Dynamically set the model based on objectId
+        const modelMap = {
+          "Marker 1":
+            "https://firebasestorage.googleapis.com/v0/b/fireye-91940.appspot.com/o/models%2FARObject1.glb?alt=media&token=a68ba586-0c9b-48c4-9bb1-9e25f430e1c8",
+          "Marker 2":
+            "https://firebasestorage.googleapis.com/v0/b/fireye-91940.appspot.com/o/models%2FARObject2.glb?alt=media&token=your-token-here", // Replace with actual URL and token
+          "Marker 3":
+            "https://firebasestorage.googleapis.com/v0/b/fireye-91940.appspot.com/o/models%2FARObject3.glb?alt=media&token=your-token-here", // Replace with actual URL and token
+          default:
+            "https://firebasestorage.googleapis.com/v0/b/fireye-91940.appspot.com/o/models%2FARObject1.glb?alt=media&token=a68ba586-0c9b-48c4-9bb1-9e25f430e1c8",
+        };
+        modelEntity.setAttribute(
+          "gltf-model",
+          modelMap[objectId] || modelMap["default"]
+        );
         modelEntity.setAttribute("scale", `${scale} ${scale} ${scale}`);
 
         scene.addEventListener("loaded", () => {
@@ -112,7 +133,6 @@
               );
 
               if (!modelEntity.getAttribute("data-anchored")) {
-                // Remove from camera if parented there
                 if (modelEntity.object3D.parent !== scene.object3D) {
                   camera.object3D.remove(modelEntity.object3D);
                   scene.object3D.add(modelEntity.object3D);
@@ -128,7 +148,6 @@
                 );
               }
 
-              // Don’t reset camera position—let offset define placement
               scene.classList.add("ready");
               loadingDiv.style.display = "none";
             },
