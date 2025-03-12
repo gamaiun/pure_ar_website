@@ -1,186 +1,30 @@
-<!-- <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AR Objects at URL GPS</title>
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
-    <style>
-      a-scene {
-        display: none;
-      }
-      a-scene.ready {
-        display: block;
-      }
-      #loading {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-family: Arial, sans-serif;
-        font-size: 20px;
-        color: white;
-        background: rgba(0, 0, 0, 0.7);
-        padding: 10px;
-        border-radius: 5px;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="loading">Loading...</div>
-    <a-scene
-      arjs="sourceType: webcam; debugUIEnabled: false;"
-      renderer="logarithmicDepthBuffer: true;"
-    >
-      <a-camera
-        rotation-reader
-        position="0 1.6 0"
-        camera="far: 1000;"
-      ></a-camera>
-      <a-entity id="object" position="0 0.5 0" scale="0.5 0.5 0.5"></a-entity>
-    </a-scene>
-
-    <script>
-      console.log("Script started");
-
-      function getQueryParams() {
-        console.log("Parsing query params");
-        const params = new URLSearchParams(window.location.search);
-        return {
-          gpsLat: parseFloat(params.get("gpsLat")),
-          gpsLon: parseFloat(params.get("gpsLon")),
-          scale: parseFloat(params.get("scale")) || 0.5,
-          objectId: params.get("objectId") || "default",
-          firebaseId: params.get("firebaseId"),
-        };
-      }
-
-      function toRadians(degrees) {
-        return (degrees * Math.PI) / 180;
-      }
-
-      function calculateOffset(userLat, userLon, targetLat, targetLon) {
-        console.log("Calculating offset:", {
-          userLat,
-          userLon,
-          targetLat,
-          targetLon,
-        });
-        const R = 6371000;
-        const dLat = toRadians(targetLat - userLat);
-        const dLon = toRadians(targetLon - userLon);
-        const latAvg = toRadians((userLat + targetLat) / 2);
-        const x = R * dLon * Math.cos(latAvg);
-        const z = -R * dLat;
-        return { x: isNaN(x) ? 0 : x, z: isNaN(z) ? 0 : z };
-      }
-
-      window.onload = () => {
-        console.log("Window loaded");
-        const scene = document.querySelector("a-scene");
-        const modelEntity = document.querySelector("#object");
-        const camera = document.querySelector("a-camera");
-        const loadingDiv = document.querySelector("#loading");
-
-        const { gpsLat, gpsLon, scale, objectId, firebaseId } =
-          getQueryParams();
-        if (!gpsLat || !gpsLon) {
-          console.error("Missing gpsLat or gpsLon.");
-          loadingDiv.textContent = "Error: Missing GPS.";
-          return;
-        }
-
-        console.log(
-          `Target: Lat ${gpsLat}, Lon ${gpsLon}, Scale ${scale}, ObjectId ${objectId}, FirebaseId ${firebaseId}`
-        );
-
-        // Updated modelMap with correct URL from ieye-453408 bucket
-        const modelMap = {
-          "Marker 1":
-            "https://firebasestorage.googleapis.com/v0/b/ieye-453408.firebasestorage.app/o/ARObject1.glb?alt=media&token=3e5c3d8a-f4ff-4015-aebe-de9944ff8e65",
-          "Marker 2":
-            "https://firebasestorage.googleapis.com/v0/b/ieye-453408.firebasestorage.app/o/ARObject1.glb?alt=media&token=3e5c3d8a-f4ff-4015-aebe-de9944ff8e65",
-          "Marker 3":
-            "https://firebasestorage.googleapis.com/v0/b/ieye-453408.firebasestorage.app/o/ARObject1.glb?alt=media&token=3e5c3d8a-f4ff-4015-aebe-de9944ff8e65",
-          default:
-            "https://firebasestorage.googleapis.com/v0/b/ieye-453408.firebasestorage.app/o/ARObject1.glb?alt=media&token=3e5c3d8a-f4ff-4015-aebe-de9944ff8e65",
-        };
-        modelEntity.setAttribute(
-          "gltf-model",
-          modelMap[objectId] || modelMap["default"]
-        );
-        modelEntity.setAttribute("scale", `${scale} ${scale} ${scale}`);
-
-        scene.addEventListener("loaded", () => {
-          console.log("Scene loaded");
-
-          console.log("Starting geolocation");
-          navigator.geolocation.watchPosition(
-            (position) => {
-              const userLat = parseFloat(position.coords.latitude.toFixed(14));
-              const userLon = parseFloat(position.coords.longitude.toFixed(14));
-              console.log(`User: Lat ${userLat}, Lon ${userLon}`);
-
-              const offset = calculateOffset(userLat, userLon, gpsLat, gpsLon);
-              console.log(
-                `Offset: x=${offset.x.toFixed(2)}, z=${offset.z.toFixed(2)}`
-              );
-
-              if (!modelEntity.getAttribute("data-anchored")) {
-                if (modelEntity.object3D.parent !== scene.object3D) {
-                  camera.object3D.remove(modelEntity.object3D);
-                  scene.object3D.add(modelEntity.object3D);
-                }
-                const worldPos = new THREE.Vector3(offset.x, 0.5, offset.z);
-                modelEntity.object3D.position.copy(worldPos);
-                modelEntity.object3D.updateMatrixWorld(true);
-                modelEntity.setAttribute("data-anchored", "true");
-                console.log(
-                  `Anchored at: x=${worldPos.x.toFixed(
-                    2
-                  )}, z=${worldPos.z.toFixed(2)}`
-                );
-              }
-
-              scene.classList.add("ready");
-              loadingDiv.style.display = "none";
-            },
-            (error) => {
-              console.error("GPS Error:", error.message);
-              loadingDiv.textContent = "GPS Error: " + error.message;
-            },
-            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-          );
-
-          modelEntity.addEventListener("model-loaded", () => {
-            console.log("Model loaded");
-          });
-
-          modelEntity.addEventListener("model-error", (event) => {
-            console.error("Model failed to load:", event.detail);
-            loadingDiv.textContent = "Error loading model.";
-          });
-        });
-      };
-    </script>
-  </body>
-</html> -->
-
 <!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AR Objects at URL GPS</title>
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.125/Build/Cesium/Cesium.js"></script>
     <style>
-      a-scene {
-        display: none;
+      body {
+        margin: 0;
+        overflow: hidden;
       }
-      a-scene.ready {
-        display: block;
+      #video {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: -1;
+      }
+      canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
       }
       #loading {
         position: fixed;
@@ -197,15 +41,8 @@
     </style>
   </head>
   <body>
+    <video id="video" autoplay playsinline></video>
     <div id="loading">Loading...</div>
-    <a-scene
-      mindar="imageTargetSrc: null;"
-      renderer="logarithmicDepthBuffer: true;"
-    >
-      <a-camera position="0 1.6 0" camera="far: 100;"></a-camera>
-      <a-entity id="object" position="0 0.5 0" scale="0.5 0.5 0.5"></a-entity>
-    </a-scene>
-
-    <script type="module" src="main.js"></script>
+    <script src="main.js"></script>
   </body>
 </html>
