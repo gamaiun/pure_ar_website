@@ -1,185 +1,152 @@
-import * as THREE from "./lib/three.module.js";
-import { GLTFLoader } from "./lib/GLTFLoader.js";
-import * as Cesium from "./lib/Cesium.js";
+// Parse URL parameters
+const urlParams = new URLSearchParams(window.location.search);
+const gpsLat = parseFloat(urlParams.get("gpsLat")) || 33.203299110093006; // Default latitude
+const gpsLon = parseFloat(urlParams.get("gpsLon")) || 35.575139969587326; // Default longitude
+const scale = parseFloat(urlParams.get("scale")) || 0.5; // Default scale
+const objectId = urlParams.get("objectId") || "default"; // Default objectId
+const firebaseId = urlParams.get("firebaseId") || "zX3IjNqgbMZC9THW5twq"; // Default firebaseId
 
-// Rest of the code remains the same...
+// Set up Cesium viewer without terrain or imagery (just for GPS calculations)
+const viewer = new Cesium.Viewer("arContainer", {
+  scene3DOnly: true, // Use 3D mode only
+  terrainProvider: new Cesium.EllipsoidTerrainProvider(), // Basic ellipsoid (no terrain data)
+  imageryProvider: false, // Disable imagery (no maps)
+  baseLayerPicker: false,
+  geocoder: false,
+  homeButton: false,
+  sceneModePicker: false,
+  navigationHelpButton: false,
+  animation: false,
+  timeline: false,
+  fullscreenButton: false,
+  skyBox: false, // Disable skybox for a cleaner AR view
+  skyAtmosphere: false, // Disable atmosphere
+});
 
-function getQueryParams() {
-  console.log("Parsing query params");
-  const params = new URLSearchParams(window.location.search);
-  return {
-    gpsLat: parseFloat(params.get("gpsLat")),
-    gpsLon: parseFloat(params.get("gpsLon")),
-    scale: parseFloat(params.get("scale")) || 0.5,
-    objectId: params.get("objectId") || "default",
-    firebaseId: params.get("firebaseId"),
-  };
+// Hide the Cesium globe (we only need Cesium for GPS calculations)
+viewer.scene.globe.show = false;
+
+// Set up Three.js for rendering the AR view
+const threeScene = new THREE.Scene();
+const threeCamera = new THREE.PerspectiveCamera(
+  75,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
+);
+const threeRenderer = new THREE.WebGLRenderer({ alpha: true });
+threeRenderer.setSize(window.innerWidth, window.innerHeight);
+threeRenderer.domElement.style.position = "absolute";
+threeRenderer.domElement.style.top = "0px";
+document.getElementById("arContainer").appendChild(threeRenderer.domElement);
+
+// Add a basic light to the Three.js scene
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+threeScene.add(ambientLight);
+const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+directionalLight.position.set(0, 1, 1);
+threeScene.add(directionalLight);
+
+// Load the 3D model using GLTFLoader
+const loader = new THREE.GLTFLoader();
+loader.load(
+  `Assets/${objectId}.gltf`,
+  (gltf) => {
+    const model = gltf.scene;
+    model.scale.set(scale, scale, scale); // Apply the scale from URL params
+
+    // Convert GPS coordinates to Cartesian coordinates using Cesium
+    const position = Cesium.Cartesian3.fromDegrees(gpsLon, gpsLat, 0); // Place at ground level
+    const transform = Cesium.Transforms.eastNorthUpToFixedFrame(position);
+    model.userData.cesiumTransform = transform;
+
+    threeScene.add(model);
+  },
+  (xhr) => {
+    console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
+  },
+  (error) => {
+    console.error("Error loading GLTF model:", error);
+  }
+);
+
+// Device orientation for AR view
+let deviceOrientation = { alpha: 0, beta: 0, gamma: 0 };
+window.addEventListener("deviceorientation", (event) => {
+  deviceOrientation.alpha = event.alpha || 0; // Heading (degrees)
+  deviceOrientation.beta = event.beta || 0; // Tilt front-to-back (degrees)
+  deviceOrientation.gamma = event.gamma || 0; // Tilt side-to-side (degrees)
+});
+
+// Request device orientation permission (iOS 13+ requirement)
+if (typeof DeviceOrientationEvent.requestPermission === "function") {
+  DeviceOrientationEvent.requestPermission()
+    .then((permissionState) => {
+      if (permissionState === "granted") {
+        console.log("Device orientation permission granted");
+      }
+    })
+    .catch(console.error);
 }
 
-window.onload = () => {
-  console.log("Script started");
+// Get device GPS location (for relative positioning)
+let devicePosition = null;
+navigator.geolocation.watchPosition(
+  (position) => {
+    devicePosition = {
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+      altitude: position.coords.altitude || 0,
+    };
+  },
+  (error) => {
+    console.error("Error getting device location:", error);
+  },
+  { enableHighAccuracy: true }
+);
 
-  // Get query parameters
-  const { gpsLat, gpsLon, scale, objectId, firebaseId } = getQueryParams();
-  if (!gpsLat || !gpsLon) {
-    console.error("Missing gpsLat or gpsLon.");
-    document.getElementById("loading").textContent = "Error: Missing GPS.";
-    return;
+// Animation loop
+function animate() {
+  requestAnimationFrame(animate);
+
+  // Update camera based on device orientation
+  if (deviceOrientation) {
+    const alpha = Cesium.Math.toRadians(deviceOrientation.alpha); // Heading
+    const beta = Cesium.Math.toRadians(deviceOrientation.beta); // Tilt
+    const gamma = Cesium.Math.toRadians(deviceOrientation.gamma); // Roll
+
+    // Update Three.js camera orientation
+    threeCamera.rotation.set(beta, gamma, -alpha, "YXZ");
   }
 
-  console.log(
-    `Target: Lat ${gpsLat}, Lon ${gpsLon}, Scale ${scale}, ObjectId ${objectId}, FirebaseId ${firebaseId}`
-  );
+  // Update object position relative to device location
+  if (devicePosition) {
+    const deviceCart = Cesium.Cartesian3.fromDegrees(
+      devicePosition.longitude,
+      devicePosition.latitude,
+      devicePosition.altitude
+    );
+    threeCamera.position.copy(deviceCart);
 
-  // Setup video feed for AR background
-  const video = document.getElementById("video");
-  navigator.mediaDevices
-    .getUserMedia({ video: { facingMode: "environment" } })
-    .then((stream) => {
-      video.srcObject = stream;
-      video.play();
-    })
-    .catch((err) => {
-      console.error("Error accessing camera:", err);
-      document.getElementById("loading").textContent =
-        "Error accessing camera.";
-    });
-
-  // Setup Three.js scene
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(
-    75,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    1000
-  );
-  const renderer = new THREE.WebGLRenderer({ alpha: true });
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  document.body.appendChild(renderer.domElement);
-
-  // Create a video texture for the background
-  const videoTexture = new THREE.VideoTexture(video);
-  videoTexture.minFilter = THREE.LinearFilter;
-  const backgroundMesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(2, 2),
-    new THREE.MeshBasicMaterial({ map: videoTexture })
-  );
-  backgroundMesh.material.depthTest = false;
-  backgroundMesh.material.depthWrite = false;
-  scene.add(backgroundMesh);
-
-  // Load the 3D model
-  const modelMap = {
-    "Marker 1":
-      "https://firebasestorage.googleapis.com/v0/b/ieye-453408.firebasestorage.app/o/ARObject1.glb?alt=media&token=3e5c3d8a-f4ff-4015-aebe-de9944ff8e65",
-    "Marker 2":
-      "https://firebasestorage.googleapis.com/v0/b/ieye-453408.firebasestorage.app/o/ARObject1.glb?alt=media&token=3e5c3d8a-f4ff-4015-aebe-de9944ff8e65",
-    "Marker 3":
-      "https://firebasestorage.googleapis.com/v0/b/ieye-453408.firebasestorage.app/o/ARObject1.glb?alt=media&token=3e5c3d8a-f4ff-4015-aebe-de9944ff8e65",
-    default:
-      "https://firebasestorage.googleapis.com/v0/b/ieye-453408.firebasestorage.app/o/ARObject1.glb?alt=media&token=3e5c3d8a-f4ff-4015-aebe-de9944ff8e65",
-  };
-  const modelUrl = modelMap[objectId] || modelMap["default"];
-  const loader = new GLTFLoader();
-  let model;
-  loader.load(
-    modelUrl,
-    (gltf) => {
-      model = gltf.scene;
-      model.scale.set(scale, scale, scale);
-      // Anchor the model at the target GPS coordinates (0, 0, 0) in scene
-      model.position.set(0, 0.5, 0); // Initial position (adjusted by camera)
-      scene.add(model);
-      console.log("Model loaded");
-    },
-    undefined,
-    (error) => {
-      console.error("Model failed to load:", error);
-      document.getElementById("loading").textContent = "Error loading model.";
-    }
-  );
-
-  // Handle device orientation for AR-like experience
-  let alpha = 0,
-    beta = 0,
-    gamma = 0;
-  window.addEventListener("deviceorientation", (event) => {
-    alpha = event.alpha ? THREE.MathUtils.degToRad(event.alpha) : 0; // Z rotation (compass)
-    beta = event.beta ? THREE.MathUtils.degToRad(event.beta) : 0; // X rotation (tilt front-back)
-    gamma = event.gamma ? THREE.MathUtils.degToRad(event.gamma) : 0; // Y rotation (tilt left-right)
-  });
-
-  // Geo-anchoring with CesiumJS
-  let initialPositionSet = false;
-  let initialUserLat, initialUserLon;
-
-  navigator.geolocation.watchPosition(
-    (position) => {
-      const userLat = parseFloat(position.coords.latitude.toFixed(14));
-      const userLon = parseFloat(position.coords.longitude.toFixed(14));
-      console.log(`User Position: Lat ${userLat}, Lon ${userLon}`);
-
-      if (!initialPositionSet) {
-        initialUserLat = userLat;
-        initialUserLon = userLon;
-        initialPositionSet = true;
-        document.getElementById("loading").style.display = "none";
+    threeScene.children.forEach((child) => {
+      if (child.userData.cesiumTransform) {
+        const transform = child.userData.cesiumTransform;
+        child.matrixAutoUpdate = false;
+        child.matrix.fromArray(transform);
       }
-
-      // Convert GPS coordinates to Cartesian using Cesium
-      const ellipsoid = Cesium.Ellipsoid.WGS84;
-      const cartographicUser = Cesium.Cartographic.fromDegrees(
-        userLon,
-        userLat,
-        0
-      );
-      const cartographicTarget = Cesium.Cartographic.fromDegrees(
-        gpsLon,
-        gpsLat,
-        0
-      );
-      const surfaceUser = ellipsoid.cartographicToCartesian(cartographicUser);
-      const surfaceTarget =
-        ellipsoid.cartographicToCartesian(cartographicTarget);
-
-      // Calculate the offset for camera positioning
-      const userOffset = Cesium.Cartesian3.subtract(
-        surfaceUser,
-        surfaceTarget,
-        new Cesium.Cartesian3()
-      );
-      const camX = -userOffset.x / 1000; // Convert meters to kilometers
-      const camZ = userOffset.z / 1000; // Invert for Three.js coordinate system
-      camera.position.set(camX, 1.6, camZ);
-
-      // Apply device orientation to camera rotation
-      camera.rotation.order = "YXZ";
-      camera.rotation.set(beta, gamma, -alpha);
-
-      console.log(
-        `Camera Position: x=${camX.toFixed(2)}km, z=${camZ.toFixed(2)}km`
-      );
-    },
-    (error) => {
-      console.error("GPS Error:", error.message);
-      document.getElementById("loading").textContent =
-        "GPS Error: " + error.message;
-    },
-    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-  );
-
-  // Animation loop
-  function animate() {
-    requestAnimationFrame(animate);
-    if (model) model.rotation.y += 0.01; // Optional: Rotate model for visibility
-    renderer.render(scene, camera);
+    });
   }
-  animate();
 
-  // Handle window resize
-  window.addEventListener("resize", () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
-};
+  // Render the Three.js scene
+  threeRenderer.render(threeScene, threeCamera);
+}
+
+// Handle window resizing
+window.addEventListener("resize", () => {
+  threeRenderer.setSize(window.innerWidth, window.innerHeight);
+  threeCamera.aspect = window.innerWidth / window.innerHeight;
+  threeCamera.updateProjectionMatrix();
+});
+
+// Start the animation loop
+animate();
