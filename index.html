@@ -166,6 +166,7 @@
     </script>
   </body>
 </html> -->
+
 <!DOCTYPE html>
 <html>
   <head>
@@ -173,17 +174,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AR Objects at URL GPS</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
-    <script src="https://cesium.com/downloads/cesiumjs/releases/1.125/Build/Cesium/Cesium.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image.prod.js"></script>
     <style>
       a-scene {
         display: none;
       }
       a-scene.ready {
         display: block;
-      }
-      #cesiumContainer {
-        display: none; /* Hidden, used only for Cesium calculations */
       }
       #loading {
         position: fixed;
@@ -201,17 +198,11 @@
   </head>
   <body>
     <div id="loading">Loading...</div>
-    <div id="cesiumContainer"></div>
-    <!-- Hidden Cesium container for calculations -->
     <a-scene
-      arjs="sourceType: webcam; debugUIEnabled: false;"
+      mindar="imageTargetSrc: null;"
       renderer="logarithmicDepthBuffer: true;"
     >
-      <a-camera
-        rotation-reader
-        position="0 1.6 0"
-        camera="far: 100;"
-      ></a-camera>
+      <a-camera position="0 1.6 0" camera="far: 100;"></a-camera>
       <a-entity id="object" position="0 0.5 0" scale="0.5 0.5 0.5"></a-entity>
     </a-scene>
 
@@ -285,78 +276,67 @@
         );
         modelEntity.setAttribute("scale", `${scale} ${scale} ${scale}`);
 
-        // Initialize a hidden Cesium viewer for geospatial calculations
-        const cesiumViewer = new Cesium.Viewer("cesiumContainer", {
-          imageryProvider: false,
-          terrainProvider: false,
-          scene3DOnly: true,
-          selectionIndicator: false,
-          infoBox: false,
-          geocoder: false,
-          homeButton: false,
-          sceneModePicker: false,
-          navigationHelpButton: false,
-          animation: false,
-          timeline: false,
-          fullscreenButton: false,
+        const arSystem = new window.MINDAR.ImageSystem({
+          imageTargetSrc: null, // No marker needed for location-based AR
         });
+        arSystem.start();
 
         scene.addEventListener("loaded", () => {
           console.log("Scene loaded");
 
           console.log("Starting geolocation");
-          navigator.geolocation.getCurrentPosition(
+          let initialPositionSet = false;
+          let initialUserLat, initialUserLon;
+
+          navigator.geolocation.watchPosition(
             (position) => {
               const userLat = parseFloat(position.coords.latitude.toFixed(14));
               const userLon = parseFloat(position.coords.longitude.toFixed(14));
-              console.log(
-                `Initial User Position: Lat ${userLat}, Lon ${userLon}`
-              );
+              console.log(`User Position: Lat ${userLat}, Lon ${userLon}`);
 
-              // Calculate offset using Cesium's precise geospatial model
-              const cartographicUser = Cesium.Cartographic.fromDegrees(
-                userLon,
-                userLat,
-                0
-              );
-              const cartographicTarget = Cesium.Cartographic.fromDegrees(
-                gpsLon,
-                gpsLat,
-                0
-              );
-              const ellipsoid = Cesium.Ellipsoid.WGS84;
-              const surfaceUser =
-                ellipsoid.cartographicToCartesian(cartographicUser);
-              const surfaceTarget =
-                ellipsoid.cartographicToCartesian(cartographicTarget);
-              const offset = Cesium.Cartesian3.subtract(
-                surfaceTarget,
-                surfaceUser,
-                new Cesium.Cartesian3()
-              );
-              const x = offset.x; // East-west
-              const z = -offset.z; // North-south (inverted for A-Frame's coordinate system)
-              console.log(`Offset: x=${x.toFixed(2)}m, z=${z.toFixed(2)}m`);
+              if (!initialPositionSet) {
+                initialUserLat = userLat;
+                initialUserLon = userLon;
 
-              // Anchor the object in A-Frame scene using Cesium offset
-              if (!modelEntity.getAttribute("data-anchored")) {
-                if (modelEntity.object3D.parent === camera.object3D) {
-                  camera.object3D.remove(modelEntity.object3D);
-                }
-                scene.object3D.add(modelEntity.object3D);
-                const worldPos = new THREE.Vector3(x, 0.5, z); // y=0.5 for height
-                modelEntity.object3D.position.copy(worldPos);
-                modelEntity.object3D.updateMatrixWorld(true);
-                modelEntity.setAttribute("data-anchored", "true");
-                console.log(
-                  `Anchored at: x=${worldPos.x.toFixed(
-                    2
-                  )}m, z=${worldPos.z.toFixed(2)}m`
+                const offset = calculateOffset(
+                  initialUserLat,
+                  initialUserLon,
+                  gpsLat,
+                  gpsLon
                 );
+                console.log(
+                  `Initial Offset: x=${offset.x.toFixed(
+                    2
+                  )}m, z=${offset.z.toFixed(2)}m`
+                );
+
+                if (!modelEntity.getAttribute("data-anchored")) {
+                  scene.object3D.add(modelEntity.object3D);
+                  const worldPos = new THREE.Vector3(offset.x, 0.5, offset.z);
+                  modelEntity.object3D.position.copy(worldPos);
+                  modelEntity.object3D.updateMatrixWorld(true);
+                  modelEntity.setAttribute("data-anchored", "true");
+                  console.log(
+                    `Anchored at: x=${worldPos.x.toFixed(
+                      2
+                    )}m, z=${worldPos.z.toFixed(2)}m`
+                  );
+                }
+
+                initialPositionSet = true;
+                scene.classList.add("ready");
+                loadingDiv.style.display = "none";
               }
 
-              scene.classList.add("ready");
-              loadingDiv.style.display = "none";
+              // Update camera position to align with user movement
+              const offset = calculateOffset(userLat, userLon, gpsLat, gpsLon);
+              camera.object3D.position.set(offset.x, 1.6, offset.z);
+              camera.object3D.updateMatrixWorld(true);
+              console.log(
+                `Camera Position: x=${offset.x.toFixed(
+                  2
+                )}m, z=${offset.z.toFixed(2)}m`
+              );
             },
             (error) => {
               console.error("GPS Error:", error.message);
