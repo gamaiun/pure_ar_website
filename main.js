@@ -1,4 +1,5 @@
-import * as MINDAR from "https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image.prod.js";
+// Access MindAR from the global scope
+const { ImageSystem: MindARThree } = window.MINDAR || {};
 
 function getQueryParams() {
   console.log("Parsing query params");
@@ -67,7 +68,7 @@ window.onload = () => {
   modelEntity.setAttribute("scale", `${scale} ${scale} ${scale}`);
 
   // Use MindAR's ImageSystem (adjusted for non-marker AR)
-  const arSystem = new MINDAR.IMAGE.MindARThree({
+  const arSystem = new MindARThree({
     container: document.body,
     imageTargetSrc: null, // No marker for location-based AR
   });
