@@ -1,6 +1,8 @@
 import * as THREE from "./lib/three.module.js";
 import { GLTFLoader } from "./lib/GLTFLoader.js";
-import * as Cesium from "../node_modules/cesium/Build/Cesium/Cesium.js";
+import * as Cesium from "./lib/Cesium.js";
+
+// Rest of the code remains the same...
 
 function getQueryParams() {
   console.log("Parsing query params");
