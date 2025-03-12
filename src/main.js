@@ -62,7 +62,7 @@ threeScene.add(directionalLight);
 // Load the 3D model using GLTFLoader
 const loader = new GLTFLoader();
 loader.load(
-  `/Assets/${objectId}.gltf`,
+  `/Assets/${objectId}.glb`, // Changed from .gltf to .glb
   (gltf) => {
     const model = gltf.scene;
     model.scale.set(scale, scale, scale);

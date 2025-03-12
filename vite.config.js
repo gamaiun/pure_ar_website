@@ -2,10 +2,12 @@
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  base: "/pure-ar-experience/", // Adjust based on your Vercel deployment path
+  root: "src",
+  base: "/pure-ar/",
   build: {
-    outDir: "dist",
+    outDir: "../dist",
     assetsDir: "assets",
+    emptyOutDir: true, // Automatically empty the outDir
   },
   server: {
     open: true,

@@ -1,0 +1,38 @@
+<!-- src/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AR EXPERIENCE</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+        background: #000;
+      }
+      #title {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 48px;
+        color: white;
+        text-align: center;
+        z-index: 10;
+      }
+      #arContainer {
+        width: 100vw;
+        height: 100vh;
+      }
+    </style>
+    <script type="module" crossorigin src="/pure-ar/assets/index-YdUVYp4j.js"></script>
+  </head>
+  <body>
+    <div id="title">AR EXPERIENCE</div>
+    <div id="arContainer"></div>
+    <!-- Changed from /src/main.js to ./main.js -->
+  </body>
+</html>
