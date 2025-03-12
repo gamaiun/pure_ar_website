@@ -1,0 +1,30 @@
+{
+  "name": "pure_ar",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gamaiun/pure_ar_website.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gamaiun/pure_ar_website/issues"
+  },
+  "homepage": "https://github.com/gamaiun/pure_ar_website#readme",
+  "description": "",
+  "devDependencies": {
+    "vite": "^6.2.1"
+  },
+  "dependencies": {
+    "cesium": "^1.110.0",
+    "three": "^0.158.0"
+  }
+}
