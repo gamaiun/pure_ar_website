@@ -1,3 +1,7 @@
+// Import Three.js and GLTFLoader
+import * as THREE from "./lib/three.module.js";
+import { GLTFLoader } from "./lib/GLTFLoader.js";
+
 // Parse URL parameters
 const urlParams = new URLSearchParams(window.location.search);
 const gpsLat = parseFloat(urlParams.get("gpsLat")) || 33.203299110093006; // Default latitude
@@ -6,7 +10,10 @@ const scale = parseFloat(urlParams.get("scale")) || 0.5; // Default scale
 const objectId = urlParams.get("objectId") || "default"; // Default objectId
 const firebaseId = urlParams.get("firebaseId") || "zX3IjNqgbMZC9THW5twq"; // Default firebaseId
 
-// Set up Cesium viewer without terrain or imagery (just for GPS calculations)
+// Configure CesiumJS base URL for assets
+Cesium.buildModuleUrl.setBaseUrl("/lib/"); // Adjust if necessary based on your CesiumJS setup
+
+// Set up Cesium viewer without terrain, imagery, or UI
 const viewer = new Cesium.Viewer("arContainer", {
   scene3DOnly: true, // Use 3D mode only
   terrainProvider: new Cesium.EllipsoidTerrainProvider(), // Basic ellipsoid (no terrain data)
@@ -19,12 +26,20 @@ const viewer = new Cesium.Viewer("arContainer", {
   animation: false,
   timeline: false,
   fullscreenButton: false,
-  skyBox: false, // Disable skybox for a cleaner AR view
+  infoBox: false, // Disable info box to prevent loading InfoBoxDescription.css
+  selectionIndicator: false, // Disable selection indicator
+  skyBox: false, // Disable skybox
   skyAtmosphere: false, // Disable atmosphere
+  requestRenderMode: true, // Optimize rendering
+  maximumRenderTimeChange: Infinity, // Prevent unnecessary renders
 });
 
 // Hide the Cesium globe (we only need Cesium for GPS calculations)
 viewer.scene.globe.show = false;
+
+// Disable CesiumJS features that might try to load additional resources
+viewer.scene.requestRenderMode = true;
+viewer.scene.maximumRenderTimeChange = Infinity;
 
 // Set up Three.js for rendering the AR view
 const threeScene = new THREE.Scene();
@@ -40,7 +55,7 @@ threeRenderer.domElement.style.position = "absolute";
 threeRenderer.domElement.style.top = "0px";
 document.getElementById("arContainer").appendChild(threeRenderer.domElement);
 
-// Add a basic light to the Three.js scene
+// Add basic lighting to the Three.js scene
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
 threeScene.add(ambientLight);
 const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
@@ -48,7 +63,7 @@ directionalLight.position.set(0, 1, 1);
 threeScene.add(directionalLight);
 
 // Load the 3D model using GLTFLoader
-const loader = new THREE.GLTFLoader();
+const loader = new GLTFLoader();
 loader.load(
   `Assets/${objectId}.gltf`,
   (gltf) => {
@@ -86,7 +101,9 @@ if (typeof DeviceOrientationEvent.requestPermission === "function") {
         console.log("Device orientation permission granted");
       }
     })
-    .catch(console.error);
+    .catch((error) => {
+      console.error("Error requesting device orientation permission:", error);
+    });
 }
 
 // Get device GPS location (for relative positioning)

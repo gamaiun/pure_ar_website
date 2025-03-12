@@ -32,13 +32,9 @@
     <div id="title">AR EXPERIENCE</div>
     <div id="arContainer"></div>
 
-    <!-- Load CesiumJS -->
+    <!-- Load CesiumJS (global script) -->
     <script src="lib/Cesium.js"></script>
-    <!-- Load Three.js -->
-    <script src="lib/three.module.js"></script>
-    <!-- Load GLTFLoader -->
-    <script src="lib/GLTFLoader.js"></script>
-    <!-- Load our main script -->
-    <script src="main.js"></script>
+    <!-- Load main.js as a module -->
+    <script type="module" src="main.js"></script>
   </body>
 </html>
