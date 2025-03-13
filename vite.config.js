@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   root: "src",
-  base: "/pure-ar/",
+  base: "/", // Change to root path
   build: {
     outDir: "../dist",
     assetsDir: "assets",
