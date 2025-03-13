@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   root: "src",
-  base: "/", // Change to root path
+  base: "/", // Use root path to match Vercel deployment (purearwebsite)
   build: {
     outDir: "../dist",
     assetsDir: "assets",
