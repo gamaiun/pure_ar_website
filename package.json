@@ -22,7 +22,8 @@
   "homepage": "https://github.com/gamaiun/pure_ar_website#readme",
   "description": "",
   "devDependencies": {
-    "vite": "^6.2.1"
+    "vite": "^6.2.1",
+    "vite-plugin-cesium": "^1.2.23"
   },
   "dependencies": {
     "cesium": "^1.110.0",
