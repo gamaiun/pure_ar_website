@@ -1,12 +1,10 @@
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 
 // Parse URL parameters
 const urlParams = new URLSearchParams(window.location.search);
 const gpsLat = parseFloat(urlParams.get("gpsLat")) || 33.203299110093006;
 const gpsLon = parseFloat(urlParams.get("gpsLon")) || 35.575139969587326;
 const scale = parseFloat(urlParams.get("scale")) || 0.5;
-const objectId = urlParams.get("objectId") || "default";
 const firebaseId = urlParams.get("firebaseId") || "zX3IjNqgbMZC9THW5twq";
 
 // Set up Three.js for rendering the AR view
@@ -30,43 +28,32 @@ const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
 directionalLight.position.set(0, 1, 1);
 threeScene.add(directionalLight);
 
+// Create a simple cube instead of loading a GLTF model
+const geometry = new THREE.BoxGeometry(1, 1, 1);
+const material = new THREE.MeshBasicMaterial({ color: 0xff0000 }); // Red cube
+const cube = new THREE.Mesh(geometry, material);
+cube.scale.set(scale, scale, scale);
+
 // Simple GPS to world-space conversion (approximation)
-// We'll place the model relative to the camera based on GPS difference
-const latToMeters = (lat) => lat * 111320; // Rough conversion: 1 degree latitude = 111,320 meters
+const latToMeters = (lat) => lat * 111320; // 1 degree latitude = 111,320 meters
 const lonToMeters = (lon, lat) =>
-  lon * 111320 * Math.cos((lat * Math.PI) / 180); // Adjust for longitude
+  lon * 111320 * Math.cos((lat * Math.PI) / 180);
 
-// Load the 3D model using GLTFLoader
-const loader = new GLTFLoader();
-loader.load(
-  `/Assets/${objectId}.glb`,
-  (gltf) => {
-    const model = gltf.scene;
-    model.scale.set(scale, scale, scale);
+// Position the cube based on GPS coordinates
+const modelLat = gpsLat;
+const modelLon = gpsLon;
+let deviceLat, deviceLon;
 
-    // Position the model based on GPS coordinates (relative to camera)
-    const modelLat = gpsLat;
-    const modelLon = gpsLon;
-    let deviceLat, deviceLon;
+navigator.geolocation.getCurrentPosition((position) => {
+  deviceLat = position.coords.latitude;
+  deviceLon = position.coords.longitude;
 
-    navigator.geolocation.getCurrentPosition((position) => {
-      deviceLat = position.coords.latitude;
-      deviceLon = position.coords.longitude;
+  const deltaLat = latToMeters(modelLat - deviceLat);
+  const deltaLon = lonToMeters(modelLon - deviceLon, deviceLat);
+  cube.position.set(deltaLon, 0, -deltaLat); // Place cube in world space
+});
 
-      const deltaLat = latToMeters(modelLat - deviceLat);
-      const deltaLon = lonToMeters(modelLon - deviceLon, deviceLat);
-      model.position.set(deltaLon, 0, -deltaLat); // Place model in world space
-    });
-
-    threeScene.add(model);
-  },
-  (xhr) => {
-    console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
-  },
-  (error) => {
-    console.error("Error loading GLTF model:", error);
-  }
-);
+threeScene.add(cube);
 
 // Device orientation for AR view
 let deviceOrientation = { alpha: 0, beta: 0, gamma: 0 };
@@ -104,7 +91,6 @@ function animate() {
   threeRenderer.render(threeScene, threeCamera);
 }
 
-// Handle window resizing
 window.addEventListener("resize", () => {
   threeRenderer.setSize(window.innerWidth, window.innerHeight);
   threeCamera.aspect = window.innerWidth / window.innerHeight;
