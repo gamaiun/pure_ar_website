@@ -112,6 +112,7 @@
 // });
 
 // animate();
+
 import * as THREE from "three";
 
 // Parse URL parameters
@@ -129,7 +130,7 @@ const threeCamera = new THREE.PerspectiveCamera(
   0.1,
   1000
 );
-threeCamera.position.set(0, 0, 5); // Initial camera position
+threeCamera.position.set(0, 0, 5); // Set initial camera position
 const threeRenderer = new THREE.WebGLRenderer({ alpha: true });
 threeRenderer.setSize(window.innerWidth, window.innerHeight);
 threeRenderer.domElement.style.position = "absolute";
@@ -148,8 +149,6 @@ const geometry = new THREE.BoxGeometry(1, 1, 1);
 const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
 const cube = new THREE.Mesh(geometry, material);
 cube.scale.set(scale, scale, scale);
-cube.position.set(0, 0, -5); // Place cube in front of camera initially
-threeScene.add(cube);
 
 // Simple GPS to world-space conversion
 const latToMeters = (lat) => lat * 111320;
@@ -160,7 +159,6 @@ const modelLat = gpsLat;
 const modelLon = gpsLon;
 let deviceLat, deviceLon;
 
-// Request geolocation
 navigator.geolocation.getCurrentPosition(
   (position) => {
     deviceLat = position.coords.latitude;
@@ -177,25 +175,60 @@ navigator.geolocation.getCurrentPosition(
   { enableHighAccuracy: true, timeout: 10000 }
 );
 
+// Add the cube to the scene
+threeScene.add(cube);
+
+// Set up camera feed as background
+let video = document.createElement("video");
+video.setAttribute("autoplay", "");
+video.setAttribute("playsinline", ""); // Required for iOS
+document.body.appendChild(video);
+
+// Access device camera
+navigator.mediaDevices
+  .getUserMedia({
+    video: { facingMode: "environment" }, // Use rear camera
+  })
+  .then((stream) => {
+    video.srcObject = stream;
+    video.play();
+    console.log("Camera feed started");
+  })
+  .catch((error) => {
+    console.error("Error accessing camera:", error);
+    alert("Camera access denied. Please enable camera permissions.");
+  });
+
+// Create a texture from the video feed
+const videoTexture = new THREE.VideoTexture(video);
+videoTexture.minFilter = THREE.LinearFilter;
+videoTexture.magFilter = THREE.LinearFilter;
+
+// Create a background plane for the video feed
+const planeGeometry = new THREE.PlaneGeometry(16, 9); // Adjust aspect ratio
+const planeMaterial = new THREE.MeshBasicMaterial({
+  map: videoTexture,
+  side: THREE.DoubleSide,
+});
+const backgroundPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+backgroundPlane.position.set(0, 0, -10); // Place behind cube
+threeScene.add(backgroundPlane);
+
 // Device orientation for AR view
 let deviceOrientation = { alpha: 0, beta: 0, gamma: 0 };
 let orientationPermissionGranted = false;
 
-window.addEventListener(
-  "deviceorientation",
-  (event) => {
-    if (event.alpha !== null && event.beta !== null && event.gamma !== null) {
-      deviceOrientation = {
-        alpha: event.alpha || 0,
-        beta: event.beta || 0,
-        gamma: event.gamma || 0,
-      };
-      orientationPermissionGranted = true;
-      console.log("Orientation updated:", deviceOrientation);
-    }
-  },
-  false
-);
+window.addEventListener("deviceorientation", (event) => {
+  if (event.alpha !== null && event.beta !== null && event.gamma !== null) {
+    deviceOrientation = {
+      alpha: event.alpha || 0,
+      beta: event.beta || 0,
+      gamma: event.gamma || 0,
+    };
+    orientationPermissionGranted = true;
+    console.log("Orientation updated:", deviceOrientation);
+  }
+});
 
 // Request device orientation permission (iOS 13+)
 function requestOrientationPermission() {
@@ -205,13 +238,10 @@ function requestOrientationPermission() {
         if (permissionState === "granted") {
           console.log("Device orientation permission granted");
           orientationPermissionGranted = true;
-          // Trigger orientation event
           window.dispatchEvent(new Event("deviceorientation"));
         } else {
           console.error("Device orientation permission denied");
-          alert(
-            "Device orientation permission denied. Please enable motion access."
-          );
+          alert("Device orientation permission denied. Enable motion access.");
         }
       })
       .catch((error) => {
@@ -219,14 +249,11 @@ function requestOrientationPermission() {
         alert("Error requesting orientation: " + error.message);
       });
   } else {
-    console.log(
-      "Device orientation API supported, no permission prompt needed."
-    );
-    orientationPermissionGranted = true; // Assume granted on non-iOS or older devices
+    console.log("Device orientation API supported, no prompt needed.");
+    orientationPermissionGranted = true;
   }
 }
 
-// Trigger permission request on user interaction (e.g., page load or click)
 document.addEventListener(
   "click",
   () => {
