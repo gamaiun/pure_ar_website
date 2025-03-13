@@ -54,8 +54,6 @@ navigator.geolocation.watchPosition(
       position.coords.latitude,
       0
     );
-
-    // Update cube position relative to device
     updateCubePosition();
   },
   (error) => {
@@ -122,14 +120,14 @@ function updateCubePosition() {
     new Cesium.Matrix4()
   );
 
-  // Cube’s position in local ENU coordinates
+  // Cube’s position in local ENU coordinates (x = east, y = up, z = north)
   const relativePosition = Cesium.Matrix4.multiplyByPoint(
     inverseTransform,
     targetPosition,
     new Cesium.Cartesian3()
   );
 
-  // Set cube position in Three.js (x = east, y = up, z = north)
+  // Set cube position in Three.js (x = east, y = up, z = -north to match Three.js forward)
   cube.position.set(
     relativePosition.x,
     relativePosition.y,
@@ -139,17 +137,20 @@ function updateCubePosition() {
 
 // Function to update camera orientation
 function updateCameraOrientation() {
-  const alpha = THREE.MathUtils.degToRad(deviceOrientation.alpha); // Yaw
+  const alpha = THREE.MathUtils.degToRad(deviceOrientation.alpha); // Yaw (compass heading)
   const beta = THREE.MathUtils.degToRad(deviceOrientation.beta); // Pitch
   const gamma = THREE.MathUtils.degToRad(deviceOrientation.gamma); // Roll
 
-  // Create quaternion from device orientation (ENU to Three.js coordinates)
+  // Create quaternion for device orientation
   const quaternion = new THREE.Quaternion();
-  quaternion.setFromEuler(new THREE.Euler(beta, gamma, -alpha, "YXZ"));
 
-  // Apply to camera (device at origin)
+  // Apply rotations in correct order: yaw (alpha) around Y, then pitch (beta) around X, then roll (gamma) around Z
+  const euler = new THREE.Euler(-beta, -alpha, -gamma, "YXZ"); // Adjusted for correct direction
+  quaternion.setFromEuler(euler);
+
+  // Apply to camera
   threeCamera.quaternion.copy(quaternion);
-  threeCamera.position.set(0, 0, 0); // Camera at device location
+  threeCamera.position.set(0, 0, 0); // Camera remains at device origin
 }
 
 // Animation loop
